@@ -148,7 +148,7 @@ let footer = $(`
     
 
     <div class="rounded-social-buttons tag">
-    <a class="social-button twitter" href=" " target="_blank">
+    <a class="social-button twitter" href=" https://twitter.com" target="_blank">
     <!-- SVG code for twitter icon -->
     <svg class="twitter-icon-footer" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
         xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 500 500" enable-background="new 0 0 500 500"
@@ -229,7 +229,7 @@ let footer = $(`
       </svg>
     </a>
 
-    <a class="social-button github" href=" github.com/Sigsev-Dev" target="_blank">
+    <a class="social-button github" href=" https://www.github.com/Sigsev-Dev" target="_blank">
     <!-- SVG code for Github icon -->
     <svg class="github-icon-footer" width="45px" height="45px" viewBox="0 0 300 300">
         <!-- body -->
