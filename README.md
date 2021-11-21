@@ -1,1 +1,1 @@
-devpant.github.io
+sigsev-dev.github.io
