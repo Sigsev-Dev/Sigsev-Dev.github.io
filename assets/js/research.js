@@ -9,7 +9,7 @@ const research = [
         conferences : "...",
         researchYr : 2020,
         citebox : "...",
-        image : "assets/images/research-page/inteferenceNetwork.png",
+        image : "assets/images/research-page/3dNetwork.jpg",
         citation: {
             vancouver: "..."
         },
@@ -23,7 +23,7 @@ const research = [
         conferences : "...",
         researchYr : 2020,
         citebox : "...",
-        image : "assets/images/research-page/inteferenceNetwork.png",
+        image : "assets/images/research-page/3dNetwork.jpg",
         citation: {
             vancouver: "..."
         },
@@ -37,7 +37,7 @@ const research = [
         conferences : "...",
         researchYr : 2020,
         citebox : "...",
-        image : "assets/images/research-page/inteferenceNetwork.png",
+        image : "assets/images/research-page/3dNetwork.jpg",
         citation: {
             vancouver: "..."
         },
@@ -51,7 +51,7 @@ const research = [
         conferences : "...",
         researchYr : 2020,
         citebox : "...",
-        image : "assets/images/research-page/inteferenceNetwork.png",
+        image : "assets/images/research-page/3dNetwork.jpg",
         citation: {
             vancouver: "..."
         },
@@ -65,7 +65,7 @@ const research = [
         conferences : "...",
         researchYr : 2020,
         citebox : "...",
-        image : "assets/images/research-page/inteferenceNetwork.png",
+        image : "assets/images/research-page/3dNetwork.jpg",
         citation: {
             vancouver: "..."
         },
@@ -79,7 +79,7 @@ const research = [
         conferences : "...",
         researchYr : 2020,
         citebox : "...",
-        image : "assets/images/research-page/inteferenceNetwork.png",
+        image : "assets/images/research-page/3dNetwork.jpg",
         citation: {
             vancouver: "..."
         },
@@ -93,20 +93,21 @@ const research = [
         conferences : "...",
         researchYr : 2020,
         citebox : "...",
-        image : "assets/images/research-page/inteferenceNetwork.png",
+        image : "assets/images/research-page/3dNetwork.jpg",
         citation: {
             vancouver: "..."
         },
         abstract: "This is currently left empty and this can be considered as a dummy data 1",
         absbox: "absPopup1"
     },
+
     {
         title : "...",
         authors : "...",
         conferences : "...",
         researchYr : 2020,
         citebox : "...",
-        image : "assets/images/research-page/inteferenceNetwork.png",
+        image : "assets/images/research-page/3dNetwork.jpg",
         citation: {
             vancouver: "..."
         },
