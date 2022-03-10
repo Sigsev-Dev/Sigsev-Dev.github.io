@@ -6,11 +6,11 @@ AOS.init();
 const experiencecards = document.querySelector(".experience-cards");
 const exp = [
   {
-    title: "Intern",
+    title: "Winter Intern",
     cardImage: "assets/images/experience-page/?.jpeg",
-    place: "Coming Soon",
-    time: "",
-    desp: "Looking for internships",
+    place: "GMetriXR",
+    time: "(Nov, 2021 - Jan, 2022)",
+    desp: "DWOC winter of code mentee under Gmetri, no code xr platform for open source developers",
   },
   {
     title: "Student Developer",
