@@ -6,24 +6,45 @@ AOS.init();
 const experiencecards = document.querySelector(".experience-cards");
 const exp = [
   {
-    title: "Winter Intern",
-    cardImage: "assets/images/experience-page/?.jpeg",
+    title: "SDE Intern",
+    cardImage: "assets/images/experience-page/quest_mark.jpeg",
     place: "GMetriXR",
     time: "(Nov, 2021 - Jan, 2022)",
-    desp: "DWOC winter of code mentee under Gmetri, no code xr platform for open source developers",
+    desp: "DWOC winter of code mentee under Gmetri, wrote Jobaid examples of structure codes for live in-XR recursive tree structures (Rjson) players with Typescript, html, AWS",
   },
   {
-    title: "Student Developer",
-    cardImage: "assets/images/experience-page/gsoc.png",
-    place: "Soon to come",
-    time: "(Mar - Aug, 2022)",
-    desp: "Working/ applying to open source work for GSoC '22",
+    title: "Software Engineering Intern",
+    cardImage: "KrypC.png",
+    place: "KrypC",
+    time: "(Mar - Aug, 2023)",
+    desp: "Developed and deployed smart contracts on Ethereum and other blockchain platforms leveraging KrypC Web3 SDK(Solidity, JS).",
+  },
+  {
+    title: "Summer Research Fellowship Programme",
+    cardImage: "IISc.jpg",
+    place: "Indian Institute of Science, Bangalore",
+    time: "(May - July, 2022)",
+    desp: "Implemented an optimized web based tool for visualization of deep volumetric rendering using ray casting algorithms and high quality rendering of Extremum Graphs using React, JavaScript, HTML and CSS.",
+  },
+  {
+    title: "Research Intern",
+    cardImage: "IISc.jpg",
+    place: "Indian Institute of Science, Bangalore",
+    time: "(Aug - Sept, 2022)",
+    desp: "Developed and deployed smart contracts on Ethereum and other blockchain platforms leveraging KrypC Web3 SDK(Solidity, JS).",
+  },
+  {
+    title: "Research Intern",
+    cardImage: "NYU.png",
+    place: "Indian Institute of Science, Bangalore",
+    time: "(Aug - Sept, 2022)",
+    desp: "Developed and deployed smart contracts on Ethereum and other blockchain platforms leveraging KrypC Web3 SDK(Solidity, JS).",
   },
   {
     title: "Society Head",
     cardImage: "assets/images/experience-page/IIITR.png",
     place: "IIIT Ranchi",
-    time: "(2020 - Present)",
+    time: "(May 2020 - May 2023)",
     desp:"<li>Community Coordinator for Society of Blockchain-crypto-cyber_security @ House of Geeks , IIIT Ranchi</li><li> Member of community of Competitve Coding @ house of Geeks, IIIT Ranchi</li>",
   },
 ];
@@ -94,28 +115,21 @@ const mentor = [
   {
     title: "TDefi Bizthon",
     subtitle: "Finalist",
-    image: "assets/images/experience-page/?.jpeg",
-    desp: " A B2B idea for..",
+    image: "assets/images/experience-page/quest_mark.jpeg",
+    desp: " A B2B idea for a high-level third-party application that can initiate secure communication among various banks’ open APIs whilesolving the problem of on-demand identity management along with removing the issuerelated to security in open banking systems.",
   },
   {
     title: "Jack The Hack",
     subtitle: "Finalist",
     image: "assets/images/experience-page/ulhacks.png",
-    desp: "Developed and lea..",
+    desp: "Developed and lead a team on the project for supply chain asset tracker using Hyperledger Fabric with QR code integration.",
   },
   {
-    title: " ",
-    subtitle: " ",
-    image: " ",
-    desp: " ",
-  },
-  {
-    title: " ",
-    subtitle: " ",
-    image: " ",
-    desp: " ",
+    title: "Smart India Hackathon",
+    subtitle: "Finalist",
+    image: "assets/images/experience-page/SIH.png",
+    desp: " Secure Online meetings for organisations for restricted access integrating MAC ad. and IP check passed through SHA256 with a multi language Neural Network NSFW chat moderation system for the chat app.",
   }
-  
 
 ];
 

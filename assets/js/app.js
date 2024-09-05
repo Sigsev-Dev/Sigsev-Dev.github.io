@@ -1,9 +1,15 @@
+
 "use strict";
+// Sweet Alert CDN through JS
+let script = document.createElement("script");
+script.type = 'text/javascript';
+script.src="https://unpkg.com/sweetalert/dist/sweetalert.min.js";
+document.body.appendChild(script);
 
 // Header
 
 let header = $(`
-<nav class="navbar navbar-expand-lg navbar-light fixed-top" id="navbar">
+<nav class="navbar navbar-expand-lg fixed-top dark-theme" id="navbar">
 <a class="navbar-brand" href="index.html">Dev Pant </a>
 <div class="hamburger_wrapper navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 
@@ -19,12 +25,12 @@ let header = $(`
   <ul class="navbar-nav ml-auto" id = "navbar-content">
    <li class="nav-item nav-item-hover"><a class="nav-link" href="index.html">Home</a></li>
    <li class="nav-item nav-item-hover"><a class="nav-link" href="experience.html">Experience</a></li>
-   <li class="nav-item nav-item-hover">Projects</li>
-   <li class="nav-item nav-item-hover"><a class="nav-link" href="games.html">Games</a></li>
+   <li class="nav-item nav-item-hover"><a class="nav-link" href="projects.html">Projects</a></li>
+   <li class="nav-item nav-item-hover"><a class="nav-link" href="research.html">Research</a></li>
    <li class="nav-item nav-item-hover"><a class="nav-link" href="education.html">Education</a></li>
    <li class="nav-item nav-item-hover"><a class="nav-link" href="https://hashnode.com/" target="_blank">Blogs</a></li>
    <li class="nav-item">
-   <input type="checkbox" id="dark_toggler" class="dark_toggler" aria-label="Toggle Light Mode" onclick="toggle_light_mode()">
+   <input type="checkbox" id="dark_toggler" class="dark_toggler" aria-label="Toggle Light Mode" onclick="toggle_light_mode()" checked>
    </li>
    <div class="bike">
    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-80 0 650 400" preserveAspectRatio="xMinYMin meet">
@@ -132,14 +138,18 @@ let footer = $(`
              <div class="form-header">
                 <h6 class="display">Get in Touch</h6>
               </div>
-                <form>
-                  <form action="https://formcarry.com/s/EPM5E1aWfEQ" method="POST" accept-charset="UTF-8" >
-                  <input type="text" name="field1" placeholder="Your Name" required/>
-                  <input type="email" name="field2" placeholder="Email Address"  required/>
-                  <textarea name="field3" placeholder="Type your Message" required></textarea>
-                  <input type="submit" value="Send" />
+                <form name="form1" action="https://formcarry.com/s/5ujjtP16_sN" method="POST" accept-charset="UTF-8" >
+                  <input id="name" type="text" name="name" placeholder="Your Name" required/>
+                  <input id="email" type="email" name="email" placeholder="Email Address" required/>                  
+                  <textarea id="textArea" name="message" placeholder="Type your Message" required></textarea>
+              
+                  <div id="main">
+                    <button id="lnch" type="button" value="Send" >Send</button>
+                    <div id="lnch_btn"><i class="fas fa-space-shuttle"></i></div>
+                  </div>
                 </form>
-             </div>
+              </div>
+            </div>
           </div>
         </div>
     </div>
@@ -148,7 +158,7 @@ let footer = $(`
     
 
     <div class="rounded-social-buttons tag">
-    <a class="social-button twitter" href=" https://www.twitter.com/Phoenix73055760/" target="_blank">
+    <a class="social-button twitter" href="#" target="_blank">
     <!-- SVG code for twitter icon -->
     <svg class="twitter-icon-footer" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
         xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 500 500" enable-background="new 0 0 500 500"
@@ -206,7 +216,7 @@ let footer = $(`
     </svg>
     </a>
 
-    <a class="social-button linkedin" href=" https://www.linkedin.com/in/dev-pant/" target="_blank" >
+    <a class="social-button linkedin" href="" target="_blank" >
     <!-- svg code for linkedin icon -->
       <svg class="linkedin-icon-footer" xmlns="http://www.w3.org/2000/svg" width="35" viewBox="0 0 24 24" fill="#0e76a8"
         stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-linkedin">
@@ -218,7 +228,7 @@ let footer = $(`
 
 
 
-    <a class="social-button instagram" href=" https://www.instagram.com/dev_it_is/" target="_blank" >
+    <a class="social-button instagram" href="" target="_blank" >
     <!-- svg code for instagram icon -->
       <svg class="instagram-icon-footer" x="0px" y="0px" viewBox="0 0 202.5 202.5"
         style="enable-background:new 0 0 202.5 202.5;">
@@ -229,7 +239,7 @@ let footer = $(`
       </svg>
     </a>
 
-    <a class="social-button github" href=" https://www.github.com/Sigsev-Dev" target="_blank">
+    <a class="social-button github" href="#" target="_blank">
     <!-- SVG code for Github icon -->
     <svg class="github-icon-footer" width="45px" height="45px" viewBox="0 0 300 300">
         <!-- body -->
@@ -353,24 +363,24 @@ $(document).ready(function () {
   );
 });
 
-//consistent dark mode for page change
-if (localStorage.getItem("lightMode") == "dark") {
+//consistent light mode for page change
+if (localStorage.getItem("lightMode") == "light") {
   var app = document.getElementsByTagName("HTML")[0];
-  app.setAttribute("light-mode", "dark");
+  app.setAttribute("light-mode", "light");
 
   //to add dark theme to nav bar after its been loaded
   window.addEventListener("load", function () {
     var nav = document.getElementById("navbar");
-    nav.classList.add("dark-theme");
-    document.getElementById("dark_toggler").checked = true;
+    nav.classList.remove("dark-theme");
+    document.getElementById("dark_toggler").checked = false;
   });
 
   var sc = document.getElementsByClassName("socialicon");
   for (var i = 0; i < sc.length; i++) {
-    sc[i].classList.add("dsc");
+    sc[i].classList.remove("dsc");
   }
 } else {
-  localStorage.setItem("lightMode", "light");
+  localStorage.setItem("lightMode", "dark");
 }
 
 function toggle_light_mode() {
@@ -424,4 +434,48 @@ $(window).on("load", function () {
     $(".no-scroll-preload").css("overflow", "visible");
   }, 1000);
   $(".loader-container").fadeOut(2500);
+});
+
+//send button animation
+
+
+$(function submitAnimation() {
+  const name = document.querySelector("#name")
+  const emailAdress = document.querySelector("#email")
+  const text = document.querySelector("#textArea")
+  const emailPattern = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+
+  $("#lnch").on("click", function () {
+
+    // Check if the name field is empty or contains a number
+    if (name.value == "" || (/\d/.test(name.value))) {
+      swal("Error !","Please enter a valid name !","error");
+      return;
+    }
+    // Check if the email field is empty or email is not valid ex: test@@email.com
+    else if (emailAdress.value == "" || !(emailPattern.test(emailAdress.value))) {
+      swal("Error !","Please enter a valid email !","error");
+      return;
+    }
+    // Check if the message field is empty
+    else if (text.value == "") {
+      swal("Error !","Please enter a valid message !","error");
+      return;
+    }
+    else {
+
+      setTimeout(function () {
+        $("#lnch").addClass("launching").text("Sending");
+        $("#lnch_btn").addClass("launching");
+      }, 0);
+      setTimeout(function () {
+        $("#lnch").addClass("launched").text("SENT");
+        $("#lnch_btn").addClass("launched");
+      }, 1500);
+      // Wait for 2.2 seconds so that the send button animation can be fully played before submitting the form
+      setTimeout(() => {
+        document.querySelector('form').submit();
+      }, 2200);
+    }
+  });
 });
