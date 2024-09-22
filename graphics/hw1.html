@@ -30,35 +30,63 @@
                         //      vPos.z == 0
 
  // A FRAGMENT SHADER MUST DEFINE main().
-
+ 
+ // Function to create a random value based on a seed
+ float random(vec2 p) {
+     return fract(sin(dot(p.xy, vec2(12.9898, 78.233))) * 43758.5453);
+ }
+ 
+ // Function to create a circular gradient for particles
+ float circularGradient(vec2 uv, vec2 center, float radius, float edge) {
+     float dist = length(uv - center);
+     return smoothstep(radius + edge, radius - edge, dist);
+ }
+ 
+ // Function to simulate a firework particle explosion with trails
+ vec3 fireworkParticle(vec2 uv, vec2 center, float explosion, float fade, vec3 rgb) {
+     vec2 direction = normalize(uv - center);
+     float particleDistance = explosion * random(center) * 0.4;
+     vec2 particlePos = center + direction * particleDistance;
+ 
+     // Create trails
+     float trail = pow(1.0 - length(uv - particlePos), 2.0) * fade;
+     return rgb * trail;
+ }
+ 
  void main() {
-
- // SET A COLOR FOR THIS FRAGMENT.
-
-    // mix(A , B , float)
-
-    vec3 rgb = mix(vec3(.2,.05,.05), vec3(0.,.3,1.), .5 + .5 * vPos.y);
-
-    for (int i = 0 ; i < 20 ; i++) {
-
-       float x = 8. * vPos.x + 20. * noise(10. * vec3(float(i)) + 100. + .1 * uTime);
-       float y = 8. * vPos.y + 20. * noise(10. * vec3(float(i)) + 200. + .1 * uTime);
-
-       //x += .1 * noise(3. * vPos);
-       //y += .1 * noise(3. * vPos + 100. + uTime);
-
-       vec3 lightDir = normalize(vec3(sin(uTime),1.,1.));
-
-       float rr = 1. - x*x - y*y;
-       if (rr > 0.) {
-          float z = sqrt(rr);
-          float b = max(0., dot(vec3(x,y,z), lightDir));
-          rgb = vec3(.1,.05,.05) + .8 * vec3(b) * vec3(.2,.5,1.);
-          rgb *= 1. + .5 * noise(3. * vec3(x,y,z + .1 * uTime));
-       }
-    }
-
-    gl_FragColor = vec4(sqrt(rgb), 1.0);
+     vec2 uv = vPos.xy * 0.5 + 0.5;
+ 
+     // Background color (night sky)
+     vec3 rgb = vec3(0.0, 0.0, 0.1);
+ 
+     // Number of fireworks
+     const int numFireworks = 7;
+ 
+     for (int i = 0; i < numFireworks; i++) {
+         // Seed for random positioning
+         float seed = float(i) * 10.0;
+         vec2 center = vec2(random(vec2(seed, seed + 1.0)), random(vec2(seed + 2.0, seed + 3.0)));
+         center.y = fract(center.y + 0.5 * sin(uTime * 0.2)); // Vertical movement over time
+ 
+         // Explosion timing
+         float explosionTime = mod(uTime + seed * 0.3, 4.0);
+         float explosion = smoothstep(0.2, 2.0, explosionTime);
+         float fade = smoothstep(2.5, 4.0, explosionTime);
+ 
+         // Firework color
+         vec3 fireworkColor = vec3(random(center + vec2(0.1, 0.2)),
+                                   random(center + vec2(0.3, 0.4)),
+                                   random(center + vec2(0.5, 0.6))) * 1.5;
+ 
+         // Firework explosion
+         rgb += fireworkParticle(uv, center, explosion, fade, fireworkColor);
+     }
+ 
+     // Adding some glow and lighting effect for realism
+     rgb = pow(rgb, vec3(1.2));
+ 
+     // Final color output
+     gl_FragColor = vec4(rgb, 1.0);
  }
 </script>
 
@@ -66,7 +94,7 @@
 <!!-------- CREATE A PROPERLY DESCRIPTIVE TITLE BELOW -------->
 
 <script id='my_title' type='text/html'>
-THIS IS AN ABOVE AVERAGE COOL SHADER PROGRAM.
+THIS IS A TRIPPY SHADER PROGRAM.
 </script>
 
 
