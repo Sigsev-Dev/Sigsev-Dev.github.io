@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ray-Traced Interactive Scene with Physics and Clickable Balls</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: url('office-background.jpg') no-repeat center center fixed;
+            background-size: cover;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas1" width="1200" height="800"></canvas>
+
+<script>
+
+// INITIALIZE GPU PROGRAM
+
+let start_gl = (canvas, meshData, vertexSize, vertexShader, fragmentShader) => {
+   let gl = canvas.getContext("webgl");
+   let program = gl.createProgram();
+   gl.program = program;
+   let addshader = (type, src) => {
+      let shader = gl.createShader(type);
+      gl.shaderSource(shader, src);
+      gl.compileShader(shader);
+      if (! gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+         throw "Cannot compile shader:\n\n" + gl.getShaderInfoLog(shader);
+      gl.attachShader(program, shader);
+   };
+   addshader(gl.VERTEX_SHADER  , vertexShader  );
+   addshader(gl.FRAGMENT_SHADER, fragmentShader);
+   gl.linkProgram(program);
+   if (! gl.getProgramParameter(program, gl.LINK_STATUS))
+      throw "Could not link the shader program!";
+   gl.useProgram(program);
+   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+   gl.enable(gl.DEPTH_TEST);
+   gl.depthFunc(gl.LEQUAL);
+   let vertexAttribute = (name, size, position) => {
+      let attr = gl.getAttribLocation(program, name);
+      gl.enableVertexAttribArray(attr);
+      gl.vertexAttribPointer(attr, size, gl.FLOAT, false, vertexSize * 4, position * 4);
+   }
+   vertexAttribute('aPos', 3, 0);
+   return gl;
+}
+
+// LOGIC TO TRACK THE CURSOR AND TORCH POSITION
+
+let r = canvas1.getBoundingClientRect(), cursor = [0,0,0];
+let setCursor = (e, z) => cursor = [(e.clientX - r.left) / canvas1.width * 2 - 1,
+                                    1 - (e.clientY - r.top) / canvas1.height * 2,
+                                    z !== undefined ? z : cursor[2]];
+canvas1.onmousedown = e => setCursor(e, 1);
+canvas1.onmousemove = e => setCursor(e);
+canvas1.onmouseup   = e => setCursor(e, 0);
+
+// TRIANGLE DATA (IN THIS CASE, ONE SQUARE)
+
+let meshData = [
+   { type: 1, mesh: new Float32Array([ -1,1,0, 1,1,0, -1,-1,0, 1,-1,0 ]) },
+];
+
+const NUM_OBJECTS = 12; // Number of objects for complexity
+let objects = [];
+let objectClicked = false;
+
+// DETECT MOUSE CLICK ON BALL
+canvas1.addEventListener('click', (e) => {
+    objectClicked = checkClickOnObject(e);
+});
+
+// RAY-OBJECT INTERSECTION FUNCTION
+function checkClickOnObject(event) {
+    let clicked = false;
+    let rayOrigin = [0, 0, 0]; // Ray originates at the center of the screen
+    let rayDirection = [
+        (event.clientX - r.left) / canvas1.width * 2 - 1,
+        1 - (event.clientY - r.top) / canvas1.height * 2,
+        -1.0 // Assuming ray is shooting into the screen
+    ];
+
+    objects.forEach((object) => {
+        let objPos = object.position;
+        let radius = object.radius;
+
+        // Calculate ray-sphere intersection
+        let oc = [rayOrigin[0] - objPos[0], rayOrigin[1] - objPos[1], rayOrigin[2] - objPos[2]];
+        let a = dot(rayDirection, rayDirection);
+        let b = 2.0 * dot(oc, rayDirection);
+        let c = dot(oc, oc) - radius * radius;
+        let discriminant = b * b - 4 * a * c;
+
+        if (discriminant > 0) {
+            clicked = true;
+            applyImpulse(object, rayDirection);
+        }
+    });
+    return clicked;
+}
+
+// APPLY IMPULSE ON CLICKED OBJECT
+function applyImpulse(object, direction) {
+    // Normalize the direction and scale to give an initial velocity boost
+    let magnitude = 0.05; // Impulse strength
+    let normDirection = normalize(direction);
+    object.velocity[0] += normDirection[0] * magnitude;
+    object.velocity[1] += normDirection[1] * magnitude;
+    object.velocity[2] += normDirection[2] * magnitude;
+}
+
+// DOT PRODUCT FUNCTION
+function dot(v1, v2) {
+    return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+}
+
+// NORMALIZE VECTOR
+function normalize(v) {
+    let len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    return [v[0] / len, v[1] / len, v[2] / len];
+}
+
+// VERTEX AND FRAGMENT SHADERS
+
+let vertexSize = 3;
+let vertexShader = `
+   attribute vec3 aPos;
+   varying   vec3 vPos;
+   void main() {
+      gl_Position = vec4(aPos, 1.0);
+      vPos = aPos;
+   }
+`;
+let fragmentShader = `
+   precision mediump float;
+   uniform float uTime, uFL;
+   uniform vec3  uCursor;
+   uniform vec4  uObjects[`+NUM_OBJECTS+`];
+   uniform vec3  uColors[`+NUM_OBJECTS+`];
+   varying vec3  vPos;
+
+   vec3 bgColor = vec3(0.1, 0.1, 0.1); // Dim ambient lighting
+
+   float raySphere(vec3 V, vec3 W, vec3 C, float r) {
+      V -= C;
+      float VV = dot(V,V);
+      float VW = dot(V,W);
+      float d = VW * VW - (VV - r*r);
+      if (d > 0.)
+         return -VW - sqrt(d);
+      return -1.;
+   }
+
+   void main(void) {
+
+      // SET BACKGROUND COLOR
+
+      vec3 color = bgColor;
+
+      // FORM THE RAY FOR THIS PIXEL
+
+      vec3 V = vec3(0.);
+      vec3 W = normalize(vec3(vPos.xy,-uFL));
+
+      vec3 L1 = normalize(uCursor); // Light from cursor
+      vec3 L2 = normalize(vec3(-1., 1., -1.)); // Fixed light source
+
+      float power = 20.0; // Increased power for sharper highlights
+
+      float tMin = 1000.;
+      for (int i = 0 ; i < ` + NUM_OBJECTS + ` ; i++) {
+         vec3  C = uObjects[i].xyz;
+         float r = uObjects[i].w;
+         float t = raySphere(V, W, C, r);
+         if (t > 0. && t < tMin) {
+            tMin = t;
+            vec3 P = V + t * W;
+            vec3 N = normalize(P - C);
+            color = 0.1 * uColors[i]; // Base ambient color
+
+            bool inShadow1 = false;
+            bool inShadow2 = false;
+
+            // Shadow Logic for Two Light Sources
+            for (int j = 0 ; j < ` + NUM_OBJECTS + ` ; j++) {
+               if (j != i) {
+                  vec3  C = uObjects[j].xyz;
+                  float r = uObjects[j].w;
+                  if (raySphere(P, L1, C, r) > 0.)
+                     inShadow1 = true;
+                  if (raySphere(P, L2, C, r) > 0.)
+                     inShadow2 = true;
+               }
+            }
+
+            if (!inShadow1 || !inShadow2) {
+               vec3 d1 = uColors[i] * max(0., dot(N, L1));
+               vec3 d2 = uColors[i] * max(0., dot(N, L2));
+               vec3 E = vec3(0.,0.,1.);
+               vec3 R1 = W - 2. * N * dot(N, W);
+               vec3 s1 = vec3(1.) * pow(max(0., dot(R1, L1)), power);
+               vec3 R2 = W - 2. * N * dot(N, W);
+               vec3 s2 = vec3(1.) * pow(max(0., dot(R2, L2)), power);
+               color += d1 + s1 + d2 + s2;
+            }
+         }
+      }
+
+      gl_FragColor = vec4(sqrt(color), 1.);
+   }
+`;
+
+// WAIT 100 MSECS BEFORE STARTING UP
+
+setTimeout(() => {
+   let gl = start_gl(canvas1, meshData, vertexSize, vertexShader, fragmentShader);
+
+   // FIND LOCATIONS IN GPU PROGRAM OF UNIFORM VARIABLES
+
+   let uFL       = gl.getUniformLocation(gl.program, "uFL"      );
+   let uTime     = gl.getUniformLocation(gl.program, "uTime"    );
+   let uCursor   = gl.getUniformLocation(gl.program, "uCursor"  ); 
+   let uObjects  = gl.getUniformLocation(gl.program, "uObjects" ); 
+   let uColors   = gl.getUniformLocation(gl.program, "uColors"  );
+
+   // ANIMATE AND RENDER EACH ANIMATION FRAME
+
+   let startTime = Date.now() / 1000;
+
+   // Object physics settings
+   let gravity = -0.005;
+   let floorY = -1.0;
+   let ceilingY = 1.0;
+   let leftWallX = -1.0;
+   let rightWallX = 1.0;
+   let frontZ = 0.5;   // Front wall closer to the viewer
+   let backZ = -1.5;   // Back wall farther from the viewer
+   for (let i = 0; i < NUM_OBJECTS; i++) {
+       objects.push({
+           position: [Math.random() * 1.6 - 0.8, Math.random() * 1.6 - 0.8, Math.random() * (frontZ - backZ) + backZ],
+           velocity: [Math.random() * 0.02 - 0.01, Math.random() * 0.02 - 0.01, Math.random() * 0.02 - 0.01],
+           radius: 0.1 + Math.random() * 0.1, // Random radius for variety
+           color: [Math.random(), Math.random(), Math.random()] // Random color for variety
+       });
+   }
+
+   setInterval(() => {
+
+      // Physics Simulation: Apply gravity and bounce
+      objects.forEach((object, i) => {
+          // Apply gravity
+          object.velocity[1] += gravity;
+
+          // Update positions
+          for (let j = 0; j < 3; j++) {
+              object.position[j] += object.velocity[j];
+          }
+
+          // Collision with floor and ceiling
+          if (object.position[1] - object.radius < floorY) {
+              object.position[1] = floorY + object.radius;
+              object.velocity[1] *= -0.7; // Bounce back with damping
+          } else if (object.position[1] + object.radius > ceilingY) {
+              object.position[1] = ceilingY - object.radius;
+              object.velocity[1] *= -0.7; // Bounce back with damping
+          }
+
+          // Collision with left and right walls
+          if (object.position[0] - object.radius < leftWallX) {
+              object.position[0] = leftWallX + object.radius;
+              object.velocity[0] *= -0.7; // Bounce back with damping
+          } else if (object.position[0] + object.radius > rightWallX) {
+              object.position[0] = rightWallX - object.radius;
+              object.velocity[0] *= -0.7; // Bounce back with damping
+          }
+
+          // Collision with front and back walls
+          if (object.position[2] - object.radius < backZ) {
+              object.position[2] = backZ + object.radius;
+              object.velocity[2] *= -0.7; // Bounce back with damping
+          } else if (object.position[2] + object.radius > frontZ) {
+              object.position[2] = frontZ - object.radius;
+              object.velocity[2] *= -0.7; // Bounce back with damping
+          }
+
+          // Collision with other objects
+          for (let j = i + 1; j < NUM_OBJECTS; j++) {
+              let other = objects[j];
+              let dist = Math.hypot(
+                  object.position[0] - other.position[0],
+                  object.position[1] - other.position[1],
+                  object.position[2] - other.position[2]
+              );
+              if (dist < object.radius + other.radius) {
+                  // Simple elastic collision response
+                  let overlap = (object.radius + other.radius - dist) / 2;
+                  for (let k = 0; k < 3; k++) {
+                      let dir = (object.position[k] - other.position[k]) / dist;
+                      object.position[k] += overlap * dir;
+                      other.position[k] -= overlap * dir;
+                      let temp = object.velocity[k];
+                      object.velocity[k] = other.velocity[k];
+                      other.velocity[k] = temp;
+                  }
+              }
+          }
+      });
+
+      // Set all uniform variables
+      let time = Date.now() / 1000 - startTime;
+      gl.uniform1f(uTime, time);
+      gl.uniform3fv(uCursor, cursor);
+      gl.uniform1f(uFL, 3);
+
+      let data = [];
+      let colors = [];
+      objects.forEach(object => {
+          data.push(...object.position, object.radius);
+          colors.push(...object.color);
+      });
+      gl.uniform4fv(uObjects, data);
+      gl.uniform3fv(uColors, colors);
+
+      // Render the frame
+      for (let n = 0; n < meshData.length; n++) {
+         let mesh = meshData[n].mesh;
+         gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
+         gl.drawArrays(meshData[n].type ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, mesh.length / vertexSize);
+      }
+   }, 30);
+}, 100);
+</script>
+</body>
+</html>
