@@ -6,6 +6,20 @@ AOS.init();
 const experiencecards = document.querySelector(".experience-cards");
 const exp = [
   {
+    title: "Researcher",
+    cardImage: "assets/images/experience-page/quest_mark.jpeg",
+    place: "Predictive Analytics Lab, NYU",
+    time: "(September, 2024 - Present)",
+    desp: " Led a team of 10 students in conducting Real-Time Big Data Analytics for the 2024 elections, analyzing sentiment from over 1 million YouTube live comments, Reddit and Twitter posts, and Google Trends using targeted searches. Utilized Vader Sentiment Analysis and NLTK to perform various NLP tasks before, during, and after the debates. Findings were published in multiple articles and gained media attention, being featured in outlets such as Washington Square News",
+  },
+  {
+    title: "Data Science Intern",
+    cardImage: "assets/images/experience-page/quest_mark.jpeg",
+    place: "NASA + CUNY",
+    time: "(May, 2024 - Present)",
+    desp: "Working under NASA RIA project on AI for Climate Change analyzing time series data of high resolution remote sensing imagery. Developed a self-learning ensemble model and a customized neural network architecture for pixel and object level analysis on Land Use Land Cover Satellite dataset achieving a 63% accuracy so far with prospect of further enhancements.",
+  },
+  {
     title: "SDE Intern",
     cardImage: "assets/images/experience-page/quest_mark.jpeg",
     place: "GMetriXR",
@@ -25,21 +39,7 @@ const exp = [
     place: "Indian Institute of Science, Bangalore",
     time: "(May - July, 2022)",
     desp: "Implemented an optimized web based tool for visualization of deep volumetric rendering using ray casting algorithms and high quality rendering of Extremum Graphs using React, JavaScript, HTML and CSS.",
-  },
-  {
-    title: "Research Intern",
-    cardImage: "IISc.jpg",
-    place: "Indian Institute of Science, Bangalore",
-    time: "(Aug - Sept, 2022)",
-    desp: "Developed and deployed smart contracts on Ethereum and other blockchain platforms leveraging KrypC Web3 SDK(Solidity, JS).",
-  },
-  {
-    title: "Research Intern",
-    cardImage: "NYU.png",
-    place: "Indian Institute of Science, Bangalore",
-    time: "(Aug - Sept, 2022)",
-    desp: "Developed and deployed smart contracts on Ethereum and other blockchain platforms leveraging KrypC Web3 SDK(Solidity, JS).",
-  },
+  },  
   {
     title: "Society Head",
     cardImage: "assets/images/experience-page/IIITR.png",
