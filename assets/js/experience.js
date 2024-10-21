@@ -7,7 +7,7 @@ const experiencecards = document.querySelector(".experience-cards");
 const exp = [
   {
     title: "Researcher",
-    cardImage: "assets/images/experience-page/quest_mark.jpeg",
+    cardImage: "assets/images/experience-page/nyu.jpg",
     place: "Predictive Analytics Lab, NYU",
     time: "(September, 2024 - Present)",
     desp: " Led a team of 10 students in conducting Real-Time Big Data Analytics for the 2024 elections, analyzing sentiment from over 1 million YouTube live comments, Reddit and Twitter posts, and Google Trends using targeted searches. Utilized Vader Sentiment Analysis and NLTK to perform various NLP tasks before, during, and after the debates. Findings were published in multiple articles and gained media attention, being featured in outlets such as Washington Square News",
@@ -21,24 +21,31 @@ const exp = [
   },
   {
     title: "SDE Intern",
-    cardImage: "assets/images/experience-page/quest_mark.jpeg",
+    cardImage: "assets/images/experience-page/GMetriXR.jpg",
     place: "GMetriXR",
     time: "(Nov, 2021 - Jan, 2022)",
     desp: "DWOC winter of code mentee under Gmetri, wrote Jobaid examples of structure codes for live in-XR recursive tree structures (Rjson) players with Typescript, html, AWS",
   },
   {
     title: "Software Engineering Intern",
-    cardImage: "KrypC.png",
+    cardImage: "assets/images/experience-page/KrypC.png",
     place: "KrypC",
     time: "(Mar - Aug, 2023)",
     desp: "Developed and deployed smart contracts on Ethereum and other blockchain platforms leveraging KrypC Web3 SDK(Solidity, JS).",
   },
   {
     title: "Summer Research Fellowship Programme",
-    cardImage: "IISc.jpg",
+    cardImage: "assets/images/experience-page/IISc.jpg",
     place: "Indian Institute of Science, Bangalore",
     time: "(May - July, 2022)",
-    desp: "Implemented an optimized web based tool for visualization of deep volumetric rendering using ray casting algorithms and high quality rendering of Extremum Graphs using React, JavaScript, HTML and CSS.",
+    desp: "• Worked on the implementation of the paper: Scalable computation of Extremum Graphs. • Successfully implemented an optimized web based tool for visualization of deep volumetric rendering using ray casting algorithms and high quality rendering of Extremum Graphs. • Used Javascript, WebGL, WebGPU API, Paraview, Kitware Library.",
+  },
+  {
+    title: "Research Intern",
+    cardImage: "assets/images/experience-page/IISc.jpg",
+    place: "Indian Institute of Science, Bangalore",
+    time: "(July - September, 2022)",
+    desp: "• Worked around the optimization in rendering of 3D nodes and arcs with the abstract properties written to it using the paraview writers and vtk.js and optimization of frames. • Added functionalities to the web tool for better visualization including the opacity functions to the volumetric rendering of the tubes and spherical implementation with improved lightning functions. • Implemented support for multiple file readers (converting any polydata to vtp).",
   },  
   {
     title: "Society Head",
