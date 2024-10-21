@@ -9,7 +9,7 @@ const research = [
       "Shader Programming animation",
     researchYr: 2024,
     citebox: "popup1",
-    image: "assets/images/research-page/inteferenceNetwork.png",
+    image: "assets/images/hw1_ss.png",
     citation: {
       vancouver:
         "",
@@ -29,7 +29,7 @@ const research = [
       "Ray Tracing",
     researchYr: 2024,
     citebox: "popup2",
-    image: "assets/images/research-page/crossLingual.png",
+    image: "assets/images/hw2_ss.png",
     citation: {
       vancouver:
         "",
@@ -41,14 +41,14 @@ const research = [
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw2.html",  // Add link to demo
   },
   {
-    title: "Some Codes and notes for ray tracing",
+    title: "Pretty Physics on reflection and refraction with light on Quadric Objects",
     authors:
       "Dev Pant, Ken Perlin",
     conferences:
-      "Ray Tracing codes",
+      "Quadric objects and matrix transformations with ray intersection",
     researchYr: 2024,
     citebox: "popup2",
-    image: "assets/images/research-page/crossLingual.png",
+    image: "assets/images/hw4_ss.png",
     citation: {
       vancouver:
         "",
@@ -56,8 +56,8 @@ const research = [
     abstract:
       "This is currently left empty and this can be considered as a dummy data 2",
     absbox: "absPopup2",
-    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw3.html",  // Add link to code
-    demoLink: "https://Sigsev-Dev.github.io/graphics/hw3.html",  // Add link to demo
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw4.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/hw4.html",  // Add link to demo
   },
 ];
 

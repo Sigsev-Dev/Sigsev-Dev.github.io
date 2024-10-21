@@ -1,0 +1,200 @@
+<html>
+<head><meta charset="utf-8"></head>
+<body bgcolor="black">
+   <div style="color: #b0b0b0; font-family: arial, sans-serif">
+      <h1>Pretty physics with light on quadric objects</h1>
+      </div>
+   <center><canvas id="canvas1" width="800" height="800"></canvas>
+
+<script>
+// A TINY MATRIX LIBRARY
+let mInverse = m => {
+   let dst = [], det = 0, cofactor = (c, r) => {
+      let s = (i, j) => m[c+i & 3 | (r+j & 3) << 2];
+      return (c+r & 1 ? -1 : 1) * ( (s(1,1) * (s(2,2) * s(3,3) - s(3,2) * s(2,3)))
+                                  - (s(2,1) * (s(1,2) * s(3,3) - s(3,2) * s(1,3)))
+                                  + (s(3,1) * (s(1,2) * s(2,3) - s(2,2) * s(1,3))) );
+   }
+   for (let n = 0 ; n < 16 ; n++) dst.push(cofactor(n >> 2, n & 3));
+   for (let n = 0 ; n <  4 ; n++) det += m[n] * dst[n << 2];
+   for (let n = 0 ; n < 16 ; n++) dst[n] /= det;
+   return dst;
+}
+
+let matrixMultiply = (a, b) => {
+   let dst = [];
+   for (let n = 0 ; n < 16 ; n++)
+      dst.push(a[n&3]*b[n&12] + a[n&3|4]*b[n&12|1] + a[n&3|8]*b[n&12|2] + a[n&3|12]*b[n&12|3]);
+   return dst;
+}
+
+let C = t => Math.cos(t);
+let S = t => Math.sin(t);
+let mIdentity = () => [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
+let mPerspective = (fl, m) => matrixMultiply(m, [1,0,0,0, 0,1,0,0, 0,0,1,-1/fl, 0,0,0,1]);
+let mRotateX = (t, m) => matrixMultiply(m, [1,0,0,0, 0,C(t),S(t),0, 0,-S(t),C(t),0, 0,0,0,1]);
+let mRotateY = (t, m) => matrixMultiply(m, [C(t),0,-S(t),0, 0,1,0,0, S(t),0,C(t),0, 0,0,0,1]);
+let mRotateZ = (t, m) => matrixMultiply(m, [C(t),S(t),0,0, -S(t),C(t),0,0, 0,0,1,0, 0,0,0,1]);
+let mScale = (x,y,z, m) => matrixMultiply(m, [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1]);
+let mTranslate = (x,y,z, m) => matrixMultiply(m, [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]);
+
+// INITIALIZE WEBGL
+let start_gl = (canvas, meshData, vertexSize, vertexShader, fragmentShader) => {
+   let gl = canvas.getContext("webgl");
+   let program = gl.createProgram();
+   gl.program = program;
+   let addshader = (type, src) => {
+      let shader = gl.createShader(type);
+      gl.shaderSource(shader, src);
+      gl.compileShader(shader);
+      if (! gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+         throw "Cannot compile shader:\n\n" + gl.getShaderInfoLog(shader);
+      gl.attachShader(program, shader);
+   };
+   addshader(gl.VERTEX_SHADER  , vertexShader  );
+   addshader(gl.FRAGMENT_SHADER, fragmentShader);
+   gl.linkProgram(program);
+   if (! gl.getProgramParameter(program, gl.LINK_STATUS))
+      throw "Could not link the shader program!";
+   gl.useProgram(program);
+   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+   gl.enable(gl.DEPTH_TEST);
+   gl.depthFunc(gl.LEQUAL);
+   let vertexAttribute = (name, size, position) => {
+      let attr = gl.getAttribLocation(program, name);
+      gl.enableVertexAttribArray(attr);
+      gl.vertexAttribPointer(attr, size, gl.FLOAT, false, vertexSize * 4, position * 4);
+   }
+   vertexAttribute('aPos', 3, 0);
+   vertexAttribute('aNor', 3, 3);
+   return gl;
+}
+
+// OBJECT GENERATION FUNCTIONS
+let createMesh = (nu, nv, p) => {
+   let mesh = [];
+   for (let j = nv-1 ; j >= 0 ; j--) {
+      for (let i = 0 ; i <= nu ; i++)
+         mesh.push(p(i/nu,(j+1)/nv), p(i/nu,j/nv));
+      mesh.push(p(1,j/nv), p(0,j/nv));
+   }
+   return mesh.flat();
+};
+
+let sphere = (nu, nv) => createMesh(nu, nv, (u,v) => {
+   let theta = 2 * Math.PI * u;
+   let phi = Math.PI * (v - .5);
+   let x = C(phi) * C(theta),
+       y = C(phi) * S(theta),
+       z = S(phi);
+   return [ x,y,z, x,y,z ];
+});
+
+let cylinder = (nu, nv) => createMesh(nu, nv, (u,v) => {
+   let x = C(2 * Math.PI * u),
+       y = S(2 * Math.PI * u);
+   return [ x,y,v*2-1, x,y,0 ];
+});
+
+let slab = (nu, nv) => createMesh(nu, nv, (u,v) => {
+   let x = u * 2 - 1, y = v * 2 - 1;
+   return [ x, y, 0, 0, 0, 1 ]; // slab on z-axis
+});
+
+// SIMPLE QUADRICS (SPHERE, CYLINDER, SLAB)
+let meshData = [
+   { type: 1, color: [1.0, 0.3, 0.3], mesh: new Float32Array(sphere(20, 20)) },     // Red Sphere
+   { type: 1, color: [0.3, 0.3, 1.0], mesh: new Float32Array(cylinder(20, 20)) },  // Blue Cylinder
+   { type: 1, color: [0.3, 1.0, 0.3], mesh: new Float32Array(slab(20, 20)) }      // Green Slab
+];
+
+// SIMPLE VERTEX AND FRAGMENT SHADERS
+let vertexSize = 6;
+let vertexShader = `
+   attribute vec3 aPos, aNor;
+   uniform mat4 uMatrix, uInvMatrix;
+   varying vec3 vPos, vNor;
+   void main() {
+      vec4 pos = uMatrix * vec4(aPos, 1.0);
+      vec4 nor = vec4(aNor, 0.0) * uInvMatrix;
+      vPos = pos.xyz;
+      vNor = nor.xyz;
+      gl_Position = pos * vec4(1.,1.,-.1,1.);
+   }
+`;
+
+let fragmentShader = `
+   precision mediump float;
+   uniform vec3 uColor;
+   varying vec3 vPos, vNor;
+
+   void main(void) {
+      vec3 incident = normalize(vPos); // View direction
+      vec3 normal = normalize(vNor);   // Normal at the intersection point
+      
+      // Reflection computation
+      vec3 reflectionVec = reflect(incident, normal);
+      
+      // Refraction computation with refractive index (eta = 1.33 for water-like)
+      vec3 refractionVec = refract(incident, normal, 1.33);
+      
+      // Mix between reflection and refraction for final color
+      float reflectionCoeff = 0.5;
+      vec3 finalColor = mix(reflectionVec, refractionVec, reflectionCoeff);
+
+      // Simple shading with the computed color
+      float c = .05 + max(0., dot(normalize(vNor), vec3(.57)));
+      gl_FragColor = vec4(sqrt(c * uColor * finalColor), 1.);
+   }
+`;
+
+// WEBGL SETUP
+let gl = start_gl(canvas1, meshData, vertexSize, vertexShader, fragmentShader);
+let uColor     = gl.getUniformLocation(gl.program, "uColor"    );
+let uInvMatrix = gl.getUniformLocation(gl.program, "uInvMatrix");
+let uMatrix    = gl.getUniformLocation(gl.program, "uMatrix"   );
+
+// Variables to control the random motion
+let randomOffsets = meshData.map(() => ({
+   x: Math.random() * 0.02 - 0.01, // Random initial offset between [-0.1, 0.1]
+   y: Math.random() * 0.02 - 0.01, // Random initial offset between [-0.1, 0.1]
+   speedX: Math.random() * 0.01 + 0.005, // Random speed for X-axis
+   speedY: Math.random() * 0.01 + 0.005  // Random speed for Y-axis
+}));
+
+// MAIN ANIMATION LOOP
+let startTime = Date.now() / 1000;
+function renderFrame() {
+   requestAnimationFrame(renderFrame);
+   let time = Date.now() / 1000 - startTime, m;
+
+   for (let n = 0 ; n < meshData.length ; n++) {
+      // Apply random complex transformations for each shape
+      m = mIdentity();
+      m = mPerspective(3, m);
+      m = mRotateX(time * 0.3 * (n+1), m);
+      m = mRotateY(time * 0.5 * (n+1), m);
+      
+      // Update the random motion with bounded movement (in a small radius)
+      let offsetX = randomOffsets[n].x + Math.sin(time * randomOffsets[n].speedX) * 0.05;
+      let offsetY = randomOffsets[n].y + Math.cos(time * randomOffsets[n].speedY) * 0.05;
+      m = mTranslate(offsetX, offsetY, -0.8, m);
+      m = mScale(0.3 + 0.2 * S(time + n), 0.3 + 0.3 * C(time * n), 0.3, m);
+
+      // Send transformation matrices to shader
+      gl.uniform3fv(uColor, meshData[n].color);
+      gl.uniformMatrix4fv(uInvMatrix, false, mInverse(m));
+      gl.uniformMatrix4fv(uMatrix, false, m);
+
+      // Render the object
+      let mesh = meshData[n].mesh;
+      gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
+      gl.drawArrays(meshData[n].type ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, mesh.length / vertexSize);
+   }
+}
+requestAnimationFrame(renderFrame);
+
+</script>
+</center>
+</body>
+</html>
