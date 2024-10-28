@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icosahedron Text and Face</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://threejs.org/examples/jsm/geometries/TextGeometry.js"></script>
+<script src="https://threejs.org/examples/jsm/loaders/FontLoader.js"></script>
+
+<script>
+    // Initialize Scene, Camera, and Renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Set Camera Position
+    camera.position.z = 50;
+
+    // Add Lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 2);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5).normalize();
+    scene.add(directionalLight);
+
+    // Load Font and Create Text
+    const loader = new THREE.FontLoader();
+    loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+        // Text Geometry for "EXTRA CREDITS PLEASE!"
+        const textGeometry = new THREE.TextGeometry("EXTRA CREDITS PLEASE!", {
+            font: font,
+            size: 1.5,
+            height: 0.5,
+            curveSegments: 10,
+        });
+
+        const textMaterial = new THREE.MeshStandardMaterial({ color: 0xff6347, roughness: 0.5, metalness: 0.1 });
+        textGeometry.computeBoundingBox();
+
+        // Center Text
+        const centerOffset = -0.5 * (textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x);
+
+        // Create Group for Text Icosahedrons
+        const textGroup = new THREE.Group();
+        const textPoints = textGeometry.getAttribute('position');
+
+        for (let i = 0; i < textPoints.count; i += 3) {
+            const x = textPoints.getX(i);
+            const y = textPoints.getY(i);
+            const z = textPoints.getZ(i);
+
+            const icosahedronGeometry = new THREE.IcosahedronGeometry(0.3, 0);
+            const icosahedron = new THREE.Mesh(icosahedronGeometry, textMaterial);
+            icosahedron.position.set(x + centerOffset, y, z);
+
+            textGroup.add(icosahedron);
+        }
+
+        scene.add(textGroup);
+
+        // Create Face using Icosahedrons
+        const faceGroup = new THREE.Group();
+        const faceMaterial = new THREE.MeshStandardMaterial({ color: 0xffc0cb, roughness: 0.5, metalness: 0.3 });
+
+        // Define positions for "❥◕⩊◕🌸" using icosahedrons
+        const facePositions = [
+            { x: -5, y: -5, z: 0 }, // ❥
+            { x: -3, y: -5, z: 0 }, // ◕ left eye
+            { x: 0, y: -6, z: 0 },  // ⩊ mouth
+            { x: 3, y: -5, z: 0 },  // ◕ right eye
+            { x: 5, y: -4, z: 0 }   // 🌸
+        ];
+
+        for (const pos of facePositions) {
+            const icosahedronFace = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 0), faceMaterial);
+            icosahedronFace.position.set(pos.x, pos.y, pos.z);
+            faceGroup.add(icosahedronFace);
+        }
+
+        // Add flowers around the face for "🌸" symbol
+        const flowerMaterial = new THREE.MeshStandardMaterial({ color: 0xff69b4, roughness: 0.4, metalness: 0.2 });
+        const flowerPositions = [
+            { x: 6, y: -3, z: 0 }, { x: 5.5, y: -2, z: 0 }, { x: 4.5, y: -3, z: 0 },
+            { x: 5.5, y: -4.5, z: 0 }
+        ];
+
+        for (const pos of flowerPositions) {
+            const flowerPetal = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 0), flowerMaterial);
+            flowerPetal.position.set(pos.x, pos.y, pos.z);
+            faceGroup.add(flowerPetal);
+        }
+
+        scene.add(faceGroup);
+
+        // Position Groups
+        textGroup.position.set(0, 2, 0);
+        faceGroup.position.set(0, -5, 0);
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Rotate the text and face group for dynamic viewing
+            textGroup.rotation.y += 0.01;
+            textGroup.rotation.x += 0.005;
+            faceGroup.rotation.y += 0.01;
+            faceGroup.rotation.x += 0.005;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+    });
+
+    // Handle Window Resize
+    window.addEventListener('resize', function () {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    });
+</script>
+</body>
+</html>
