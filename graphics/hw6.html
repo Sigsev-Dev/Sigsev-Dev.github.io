@@ -1,5 +1,5 @@
 <body bgcolor=black>
-<center><canvas id='canvas1' width=800 height=800></canvas>
+<center><h1 style="color: white;">A swaying mini-Centipede: Decipede</h1><canvas id='canvas1' width=1200 height=800></canvas>
 
 <script>
 
@@ -241,59 +241,139 @@ let render = (Shape, color) => {
 // THE ANIMATION LOOP
 
 let startTime = Date.now() / 1000;
-function renderFrame() {
-   requestAnimationFrame(renderFrame);
-   let time = Date.now() / 1000 - startTime, m;
+
+// Centipede parameters
+let numSegments = 5; // Number of body segments along the length
+let segmentSpacing = 0.2; // Spacing between each body segment
+let bodyWidth = 0.2; // Width of the body
+let legFrequency = 3; // Frequency of leg swing
+let headColor = [0, 0.5, 1]; // Red color for the head
+let bodyColor = [0, 0.5, 1]; // Blue color for body and legs
+
+function renderCentipede() {
+   let time = Date.now() / 1000 - startTime;
+   let t = time * 2; // Speed of overall animation
+   let sway = 0.2 * Math.sin(t);
 
    M.identity().perspective(3);
 
-   // DEFINE PARAMETERS THAT CONTROL THE SCENE AND THE ANIMATION
-
-   let t = 2 * time;
-   let limbLength = .4;
-   let hipWidth = limbLength / 4;
-   let hipSway = .2 * C(t);
-   let phaseDiff = 1;//.5 + .5 * S(time);
-   let skinColor = [0,.5,1];
-
-   // ANIMATE AND RENDER THE SCENE
-
-// M.translate(0,.4,0).rotateY(-Math.PI/2 + S(time));
-   M.translate(0,.4,0).rotateY(-Math.PI/3);
-
-   M.rotateX(hipSway);
    M.save();
-      M.scale(.05,.05,hipWidth);
-      render(Sphere, skinColor);              // PELVIS
+   M.translate(0.3, 0, 0).rotateY(-Math.PI / 6 + Math.sin(t) * 0.1); 
+   M.rotateY(sway);
+   M.save();
+      M.scale(0.15, 0.15, 0.15); 
+      render(Sphere, headColor); 
+
    M.restore();
-   for (let side = -1 ; side <= 1 ; side += 2) {
-      let knee = .5 + .5 * S(t + side * Math.PI/2 * phaseDiff);
+   M.restore();
+
+   for (let i = 0; i < numSegments; i++) {
+      let phaseOffset = i * Math.PI / 8; 
+      let segmentSway = sway * Math.cos(t + phaseOffset)* 0.3;
+      M.rotateY(segmentSway);
+
       M.save();
-         M.translate(0,0,side * hipWidth);
-         M.rotateX(-hipSway);
+      M.translate(-i * segmentSpacing, 0, 0);
+      M.save();
+         M.scale(bodyWidth, 0.1, 0.1); 
+         render(Sphere, bodyColor); 
+      M.restore();
+
+      // Legs on each side of the body segment
+      for (let side = -1; side <= 1; side += 2) {
+         let legPhase = t * legFrequency + phaseOffset * side; // Phase shift for wave pattern
+         let knee = 0.5 + 0.5 * Math.sin(legPhase); // Knee bend
+
+         M.save();
+         M.translate(0, 0, side * bodyWidth); // Position legs on left and right of the body
+         M.rotateX(0.2 * Math.sin(t + phaseOffset));
          M.rotateZ(knee);
+
+         // Upper leg (same as in the original file)
          M.save();
-            M.translate(0,-limbLength/2,0);
-            M.scale(.05,limbLength/2,.05);
-            render(Sphere, skinColor);        // UPPER LEG
+            M.translate(0, -0.2 / 2, 0);
+            M.scale(0.05, 0.2 / 2, 0.05);
+            render(Sphere, bodyColor);
          M.restore();
-         M.translate(0,-limbLength,0);
+
+         // Lower leg (same as in the original file)
+         M.translate(0, -0.2, 0);
+         M.rotateZ(-2 * knee);
          M.save();
-            M.rotateZ(-2 * knee);
-            M.save();
-               M.translate(0,-limbLength/2,0);
-               M.scale(.05,limbLength/2,.05);
-               render(Sphere, skinColor);     // LOWER LEG
-            M.restore();
-            M.translate(0,-limbLength,0);
-            M.save();
-               M.translate(limbLength/4,0,0);
-	       M.scale(limbLength/4,.05,.05);
-               render(Sphere, skinColor);     // FOOT
-            M.restore();
+            M.translate(0, -0.2 / 2, 0);
+            M.scale(0.05, 0.2 / 2, 0.05);
+            render(Sphere, bodyColor);
          M.restore();
+
+         // Foot (same as in the original file)
+         M.translate(0, -0.2, 0);
+         M.save();
+            M.translate(0.2 / 4, 0, 0);
+            M.scale(0.2 / 4, 0.05, 0.05);
+            render(Sphere, bodyColor);
+         M.restore();
+
+         M.restore();
+      }
       M.restore();
    }
+}
+
+
+function renderFrame() {
+   requestAnimationFrame(renderFrame);
+   renderCentipede();
+//    let time = Date.now() / 1000 - startTime, m;
+
+//    M.identity().perspective(3);
+
+//    // DEFINE PARAMETERS THAT CONTROL THE SCENE AND THE ANIMATION
+
+//    let t = 2 * time;
+//    let limbLength = .4;
+//    let hipWidth = limbLength / 4;
+//    let hipSway = .2 * C(t);
+//    let phaseDiff = 1;//.5 + .5 * S(time);
+//    let skinColor = [0,.5,1];
+
+//    // ANIMATE AND RENDER THE SCENE
+
+// // M.translate(0,.4,0).rotateY(-Math.PI/2 + S(time));
+//    M.translate(0,.4,0).rotateY(-Math.PI/3);
+
+//    M.rotateX(hipSway);
+//    M.save();
+//       M.scale(.05,.05,hipWidth);
+//       render(Sphere, skinColor);              // PELVIS
+//    M.restore();
+//    for (let side = -1 ; side <= 1 ; side += 2) {
+//       let knee = .5 + .5 * S(t + side * Math.PI/2 * phaseDiff);
+//       M.save();
+//          M.translate(0,0,side * hipWidth);
+//          M.rotateX(-hipSway);
+//          M.rotateZ(knee);
+//          M.save();
+//             M.translate(0,-limbLength/2,0);
+//             M.scale(.05,limbLength/2,.05);
+//             render(Sphere, skinColor);        // UPPER LEG
+//          M.restore();
+//          M.translate(0,-limbLength,0);
+//          M.save();
+//             M.rotateZ(-2 * knee);
+//             M.save();
+//                M.translate(0,-limbLength/2,0);
+//                M.scale(.05,limbLength/2,.05);
+//                render(Sphere, skinColor);     // LOWER LEG
+//             M.restore();
+//             M.translate(0,-limbLength,0);
+//             M.save();
+//                M.translate(limbLength/4,0,0);
+// 	       M.scale(limbLength/4,.05,.05);
+//                render(Sphere, skinColor);     // FOOT
+//             M.restore();
+//          M.restore();
+//       M.restore();
+//    }
 }
 requestAnimationFrame(renderFrame);
 

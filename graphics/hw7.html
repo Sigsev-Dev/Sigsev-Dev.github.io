@@ -1,0 +1,600 @@
+<body bgcolor=black>
+   <h1 style="color: white; text-align: center;">Centipede Game: Use WASD keys (Don't touch borders)</h1> <!-- Game Title -->
+
+<div style="position: relative; width: 1200px; height: 700px; margin: auto;">
+   <!-- Score Canvas -->
+   <canvas id="scoreCanvas" width="1200" height="700" style="position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none;"></canvas>
+   
+   <!-- Main Game Canvas -->
+   <canvas id="canvas1" width="1200" height="700" style="position: absolute; top: 0; left: 0; z-index: 0;"></canvas>
+</div>
+
+<center>
+   <label for="speedControl" style="color: white;">Centipede Speed:</label>
+   <input type="range" id="speedControl" min="1" max="10" value="2" style="width: 400px;">
+</center>
+
+   <script>
+   
+   // MATRIX FUNCTIONS
+   
+   let mInverse = m => {
+      let dst = [], det = 0, cofactor = (c, r) => {
+         let s = (i, j) => m[c+i & 3 | (r+j & 3) << 2];
+         return (c+r & 1 ? -1 : 1) * ( (s(1,1) * (s(2,2) * s(3,3) - s(3,2) * s(2,3)))
+                                     - (s(2,1) * (s(1,2) * s(3,3) - s(3,2) * s(1,3)))
+                                     + (s(3,1) * (s(1,2) * s(2,3) - s(2,2) * s(1,3))) );
+      }
+      for (let n = 0 ; n < 16 ; n++) dst.push(cofactor(n >> 2, n & 3));
+      for (let n = 0 ; n <  4 ; n++) det += m[n] * dst[n << 2]; 
+      for (let n = 0 ; n < 16 ; n++) dst[n] /= det;
+      return dst;
+   }
+   let matrixMultiply = (a, b) => {
+      let dst = [];
+      for (let n = 0 ; n < 16 ; n++)
+         dst.push(a[n&3]*b[n&12] + a[n&3|4]*b[n&12|1] + a[n&3|8]*b[n&12|2] + a[n&3|12]*b[n&12|3]);
+      return dst;
+   }
+   let C = t => Math.cos(t);
+   let S = t => Math.sin(t);
+   let mIdentity = () => [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
+   let mPerspective = (fl, m) => matrixMultiply(m, [1,0,0,0, 0,1,0,0, 0,0,1,-1/fl, 0,0,0,1]);
+   let mRotateX = (t, m) => matrixMultiply(m, [1,0,0,0, 0,C(t),S(t),0, 0,-S(t),C(t),0, 0,0,0,1]);
+   let mRotateY = (t, m) => matrixMultiply(m, [C(t),0,-S(t),0, 0,1,0,0, S(t),0,C(t),0, 0,0,0,1]);
+   let mRotateZ = (t, m) => matrixMultiply(m, [C(t),S(t),0,0, -S(t),C(t),0,0, 0,0,1,0, 0,0,0,1]);
+   let mScale = (x,y,z, m) => matrixMultiply(m, [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1]);
+   let mTranslate = (x,y,z, m) => matrixMultiply(m, [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]);
+   
+   // MATRIX OBJECT, BUILT FROM MATRIX FUNXTIONS
+   
+   function Matrix() {
+      let stack = [mIdentity()], top = 0;
+      let set = arg => { stack[top] = arg; return this; }
+      let get = () => stack[top];
+   
+      this.identity = () => set(mIdentity());
+      this.perspective = fl => set(mPerspective(fl, get()));
+      this.rotateX = t => set(mRotateX(t, get()));
+      this.rotateY = t => set(mRotateY(t, get()));
+      this.rotateZ = t => set(mRotateZ(t, get()));
+      this.scale = (x,y,z) => set(mScale(x,y,z, get()));
+      this.translate = (x,y,z) => set(mTranslate(x,y,z, get()));
+      this.get = () => get();
+      this.save = () => set(stack[top++].slice());
+      this.restore = () => --top;
+   }
+   
+   // INITIALIZE GL
+   
+   let start_gl = (canvas, vertexSize, vertexShader, fragmentShader) => {
+      let gl = canvas.getContext("webgl");
+      let program = gl.createProgram();
+      gl.program = program;
+      let addshader = (type, src) => {
+         let shader = gl.createShader(type);
+         gl.shaderSource(shader, src);
+         gl.compileShader(shader);
+         if (! gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+            throw "Cannot compile shader:\n\n" + gl.getShaderInfoLog(shader);
+         gl.attachShader(program, shader);
+      };
+      addshader(gl.VERTEX_SHADER  , vertexShader  );
+      addshader(gl.FRAGMENT_SHADER, fragmentShader);
+      gl.linkProgram(program);
+      if (! gl.getProgramParameter(program, gl.LINK_STATUS))
+         throw "Could not link the shader program!";
+      gl.useProgram(program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+      let vertexAttribute = (name, size, position) => {
+         let attr = gl.getAttribLocation(program, name);
+         gl.enableVertexAttribArray(attr);
+         gl.vertexAttribPointer(attr, size, gl.FLOAT, false, vertexSize * 4, position * 4);
+      }
+      vertexAttribute('aPos', 3, 0);
+      vertexAttribute('aNor', 3, 3);
+      return gl;
+   }
+   
+   // CREATE A TRIANGLE_STRIP MESH
+   
+   let createMesh = (nu, nv, p) => {
+      let mesh = [];
+      for (let j = nv-1 ; j >= 0 ; j--) {
+         for (let i = 0 ; i <= nu ; i++)
+            mesh.push(p(i/nu,(j+1)/nv), p(i/nu,j/nv));
+         mesh.push(p(1,j/nv), p(0,j/nv));
+      }
+      return mesh.flat();
+   }
+   
+   // DEFINE VARIOUS KINDS OF TRIANGLE_STRIP MESHES
+   
+   let sphere = (nu, nv) => createMesh(nu, nv, (u,v) => {
+      let theta = 2 * Math.PI * u;
+      let phi = Math.PI * (v - .5);
+      let x = C(phi) * C(theta),
+          y = C(phi) * S(theta),
+          z = S(phi);
+      return [ x,y,z, x,y,z ];
+   });
+   
+   let tube = (nu, nv) => createMesh(nu, nv, (u,v) => {
+      let x = C(2 * Math.PI * u),
+          y = S(2 * Math.PI * u),
+          z = 2 * v - 1;
+      return [ x,y,z, x,y,0 ];
+   });
+   
+   let disk = (nu, nv) => createMesh(nu, nv, (u,v) => {
+      let x = v * C(2 * Math.PI * u),
+          y = v * S(2 * Math.PI * u);
+      return [ x,y,0, 0,0,1 ];
+   });
+   
+   let cylinder = (nu, nv) => createMesh(nu, nv, (u,v) => {
+      let x = C(2 * Math.PI * u),
+          y = S(2 * Math.PI * u);
+      switch (5 * v >> 0) {
+      case 0: return [ 0,0,-1, 0,0,-1 ];
+      case 1: return [ x,y,-1, 0,0,-1 ];
+      case 2: return [ x,y,-1, x,y, 0 ];
+      case 3: return [ x,y, 1, x,y, 0 ];
+      case 4: return [ x,y, 1, 0,0, 1 ];
+      case 5: return [ 0,0, 1, 0,0, 1 ];
+      }
+   });
+   
+   let torus = (nu, nv) => createMesh(nu, nv, (u,v) => {
+      let ct = C(2 * Math.PI * u);
+      let st = S(2 * Math.PI * u);
+      let cp = C(2 * Math.PI * v);
+      let sp = S(2 * Math.PI * v);
+      let x = (1 + .5 * cp) * ct,
+          y = (1 + .5 * cp) * st,
+          z =      .5 * sp;
+      return [ x,y,z, cp*ct,cp*st,sp ];
+   });
+   
+   // SHORTCUT TO MAKE IT EASIER TO DEFINE CUBE AND OCTAHEDRON
+   
+   let strToTris = str => {
+      let tris = [];
+      for (let n = 0 ; n < str.length ; n++)
+         switch (str.charAt(n)) {
+         case 'N': tris.push(-1    ); break;
+         case 'n': tris.push(-0.577); break;
+         case '0': tris.push( 0    ); break;
+         case 'p': tris.push( 0.577); break;
+         case 'P': tris.push( 1    ); break;
+         }
+      return tris;
+   }
+   
+   // DEFINE SOME MESHES MADE FROM TRIANGLES
+   
+   let cube = strToTris(`PNP00P PPP00P NPP00P  NPP00P NNP00P PNP00P
+                         NPN00N PPN00N PNN00N  PNN00N NNN00N NPN00N
+                         PPNP00 PPPP00 PNPP00  PNPP00 PNNP00 PPNP00
+                         NNPN00 NPPN00 NPNN00  NPNN00 NNNN00 NNPN00
+                         NPP0P0 PPP0P0 PPN0P0  PPN0P0 NPN0P0 NPP0P0
+                         PNN0N0 PNP0N0 NNP0N0  NNP0N0 NNN0N0 PNN0N0`);
+   
+   let octahedron = strToTris(`00Nnnn 0N0nnn N00nnn  P00pnn 0N0pnn 00Npnn
+                               N00npn 0P0npn 00Nnpn  00Nppn 0P0ppn P00ppn
+                               00Pnnp 0N0nnp N00nnp  00Ppnp 0N0pnp P00pnp
+                               N00npp 0P0npp 00Pnpp  P00ppp 0P0ppp 00Pppp`);
+   
+   // DEFINE ALL THE OBJECT SHAPES
+   
+   let Cube       = { type: 0, mesh: new Float32Array(cube) };
+   let Cylinder   = { type: 1, mesh: new Float32Array(cylinder(20,  6)) };
+   let Disk       = { type: 1, mesh: new Float32Array(disk    (20,  1)) };
+   let Octahedron = { type: 0, mesh: new Float32Array(octahedron) };
+   let Sphere     = { type: 1, mesh: new Float32Array(sphere  (20, 10)) };
+   let Torus      = { type: 1, mesh: new Float32Array(torus   (30, 30)) };
+   let Tube       = { type: 1, mesh: new Float32Array(tube    (20,  1)) };
+   
+   // VERY SIMPLE VERTEX AND FRAGMENT SHADERS
+   
+   let vertexSize = 6;
+   let vertexShader = `
+      attribute vec3 aPos, aNor;
+      uniform mat4 uMatrix, uInvMatrix;
+      varying vec3 vPos, vNor;
+      void main() {
+         vec4 pos = uMatrix * vec4(aPos, 1.0);
+         vec4 nor = vec4(aNor, 0.0) * uInvMatrix;
+         vPos = pos.xyz;
+         vNor = nor.xyz;
+         gl_Position = pos * vec4(1.,1.,-.1,1.);
+      }
+   `;
+   
+   let fragmentShader = `
+      precision mediump float;
+      uniform vec3 uColor;
+      varying vec3 vPos, vNor;
+      void main(void) {
+         float c = .05 + max(0., dot(normalize(vNor), vec3(.57)));
+         gl_FragColor = vec4(sqrt(c * uColor), 1.);
+      }
+   `;
+   
+   // INITIALIZE GL AND GET UNIFORM NAMES
+   
+   let gl = start_gl(canvas1, vertexSize, vertexShader, fragmentShader);
+   
+   let uColor     = gl.getUniformLocation(gl.program, "uColor"    );
+   let uInvMatrix = gl.getUniformLocation(gl.program, "uInvMatrix");
+   let uMatrix    = gl.getUniformLocation(gl.program, "uMatrix"   );
+   
+   // INSTANTIATE THE MATRIX OBJECT
+   
+   let M = new Matrix();
+   
+   // RENDER ONE SHAPE, AND GIVE IT A COLOR
+   
+   let render = (Shape, color) => {
+      // SET THE VALUES OF VARIOUS UNIFORM VARIABLES
+   
+      gl.uniform3fv      (uColor    , color );
+      gl.uniformMatrix4fv(uInvMatrix, false, mInverse(M.get()));
+      gl.uniformMatrix4fv(uMatrix   , false, M.get()          );
+   
+      // RENDER THIS OBJECT
+   
+      let mesh = Shape.mesh;
+      gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
+      gl.drawArrays(Shape.type ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, mesh.length / vertexSize);
+   }
+   
+   // THE ANIMATION LOOP
+   
+   let startTime = Date.now() / 1000;
+   
+   // Centipede parameters
+   let numSegments = 5; // Number of body segments along the length
+   let segmentSpacing = 0.2; // Spacing between each body segment
+   let bodyWidth = 0.2; // Width of the body
+   let legFrequency = 3; // Frequency of leg swing
+   let headColor = [0, 0.5, 1]; // Red color for the head
+   let bodyColor = [0, 0.5, 1]; // Blue color for body and legs
+
+   let direction = { x: 1, y: 0 }; // Initial direction
+   let position = { x: 0, y: 0 }; // Initial position of the centipede head
+   let speed = 0.002; // Movement speed
+   let score = 0; // Game score
+   let foodPosition = { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 }; // Random food position
+
+   let segmentPositions = []; // Array to store positions for each segment
+
+
+   // Get the speed control element and update the speed variable based on slider value
+   const speedControl = document.getElementById('speedControl');
+   speedControl.addEventListener('input', () => {
+      // Map slider value to a suitable speed range, e.g., 0.001 to 0.01
+      speed = speedControl.value * 0.001;
+   });
+
+   for (let i = 0; i < numSegments; i++) {
+   segmentPositions.push({ x: 0, y: 0 });
+}
+// Direction control variables
+let headDirection = { x: 1, y: 0 }; // Initial head direction
+
+      window.addEventListener('keydown', (event) => {
+         switch (event.key) {
+            case 'w':
+               headDirection = { x: 0, y: 1 };
+               break;
+            case 's':
+               headDirection = { x: 0, y: -1 };
+               break;
+            case 'a':
+               headDirection = { x: -1, y: 0 };
+               break;
+            case 'd':
+               headDirection = { x: 1, y: 0 };
+               break;
+         }
+      });
+
+   // Function to spawn new food
+   function spawnFood() {
+   foodPosition.x = (Math.random() * 1.8) - 0.9;
+   foodPosition.y = (Math.random() * 1.8) - 0.9;
+
+   console.log("New food position:", foodPosition.x, foodPosition.y);
+   // Ensure food does not spawn on the centipede head to avoid instant collection
+   let head = segmentPositions[0];
+   let dx = head.x - foodPosition.x;
+   let dy = head.y - foodPosition.y;
+   if (Math.sqrt(dx * dx + dy * dy) < 0.2) { 
+      spawnFood(); 
+   }
+}
+
+   function renderScore() {
+      const scoreCanvas = document.getElementById('scoreCanvas');
+      const ctx = scoreCanvas.getContext('2d');
+      ctx.clearRect(0, 0, scoreCanvas.width, scoreCanvas.height); // Clear previous score
+
+      ctx.fillStyle = "white"; 
+      ctx.font = "20px Arial"; 
+      ctx.fillText("Score: " + score, 10, 30); 
+   }
+
+
+   window.addEventListener('keydown', (event) => {
+   if (event.key === 'r' && gameOver) { 
+      resetGame();
+   }
+});
+
+function resetGame() {
+   gameOver = false; 
+   score = 0; 
+   renderScore(); 
+
+   segmentPositions = []; // Clear previous positions
+   for (let i = 0; i < numSegments; i++) {
+      segmentPositions.push({ x: 0, y: 0 }); 
+   }
+   headDirection = { x: 1, y: 0 }; 
+}
+   
+   // function renderCentipede() {
+   //    let time = Date.now() / 1000 - startTime;
+   //    let t = time * 2; // Speed of overall animation
+   //    let sway = 0.2 * Math.sin(t);
+   
+   //    M.identity().perspective(3);
+   
+   //    // Head of the centipede
+   //    M.save();
+   //    M.translate(0.3, 0, 0).rotateY(-Math.PI / 6 + Math.sin(t) * 0.1); // Slight head rotation
+   //    M.rotateY(sway);
+   //    M.save();
+   //       M.scale(0.15, 0.15, 0.15); // Slightly larger scale for the head
+   //       render(Sphere, headColor); // Render head
+   
+   //    M.restore();
+   //    M.restore();
+   
+   //    // Body segments and multiple legs on each side
+   //    for (let i = 0; i < numSegments; i++) {
+   //       let phaseOffset = i * Math.PI / 8; // Phase offset for wave motion across segments
+   //       let segmentSway = sway * Math.cos(t + phaseOffset)* 0.3;
+   //       M.rotateY(segmentSway);
+   
+   //       M.save();
+   //       M.translate(-i * segmentSpacing, 0, 0); // Position each body segment along the x-axis
+   //       M.save();
+   //          M.scale(bodyWidth, 0.1, 0.1); // Scale the body segment for a long, horizontal shape
+   //          render(Sphere, bodyColor); // Render the body segment
+   //       M.restore();
+   
+   //       // Legs on each side of the body segment
+   //       for (let side = -1; side <= 1; side += 2) {
+   //          let legPhase = t * legFrequency + phaseOffset * side; // Phase shift for wave pattern
+   //          let knee = 0.5 + 0.5 * Math.sin(legPhase); // Knee bend
+   
+   //          M.save();
+   //          M.translate(0, 0, side * bodyWidth); // Position legs on left and right of the body
+   //          M.rotateX(0.2 * Math.sin(t + phaseOffset));
+   //          M.rotateZ(knee);
+   
+   //          // Upper leg (same as in the original file)
+   //          M.save();
+   //             M.translate(0, -0.2 / 2, 0);
+   //             M.scale(0.05, 0.2 / 2, 0.05);
+   //             render(Sphere, bodyColor);
+   //          M.restore();
+   
+   //          // Lower leg (same as in the original file)
+   //          M.translate(0, -0.2, 0);
+   //          M.rotateZ(-2 * knee);
+   //          M.save();
+   //             M.translate(0, -0.2 / 2, 0);
+   //             M.scale(0.05, 0.2 / 2, 0.05);
+   //             render(Sphere, bodyColor);
+   //          M.restore();
+   
+   //          // Foot (same as in the original file)
+   //          M.translate(0, -0.2, 0);
+   //          M.save();
+   //             M.translate(0.2 / 4, 0, 0);
+   //             M.scale(0.2 / 4, 0.05, 0.05);
+   //             render(Sphere, bodyColor);
+   //          M.restore();
+   
+   //          M.restore();
+   //       }
+   //       M.restore();
+   //    }
+   // }
+   // Update segment positions
+   let gameOver = false;
+
+   function updateSegments() {
+   if (gameOver) return; // Stop updating if the game is over
+
+   // Update the head position
+   segmentPositions[0].x += headDirection.x * speed;
+   segmentPositions[0].y += headDirection.y * speed;
+
+   // Check if the head goes out of bounds, indicating game over
+   if (segmentPositions[0].x > 1 || segmentPositions[0].x < -1 || segmentPositions[0].y > 1 || segmentPositions[0].y < -1) {
+      score = 0; // Reset score
+      gameOver = true; // Set game over flag
+      renderScore(); // Update score display to 0
+      showGameOverMessage(); // Show "You Died" message
+      return; // Stop further updates
+   }
+
+   // Update each segment to follow the one in front of it
+   for (let i = 1; i < numSegments; i++) {
+      let target = segmentPositions[i - 1];
+      let segment = segmentPositions[i];
+
+      // Move segment towards the target segment position
+      let dx = target.x - segment.x;
+      let dy = target.y - segment.y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Only move if the segment is not already at the target position
+      if (distance > segmentSpacing) {
+         segment.x += (dx / distance) * speed;
+         segment.y += (dy / distance) * speed;
+      }
+
+      // Apply wrap-around for each segment
+      if (segment.x > 1) segment.x = -1;
+      else if (segment.x < -1) segment.x = 1;
+      if (segment.y > 1) segment.y = -1;
+      else if (segment.y < -1) segment.y = 1;
+   }
+}
+
+function showGameOverMessage() {
+   const scoreCanvas = document.getElementById('scoreCanvas');
+   const ctx = scoreCanvas.getContext('2d');
+   
+   // Clear the score canvas and display the game-over message
+   ctx.clearRect(0, 0, scoreCanvas.width, scoreCanvas.height);
+   ctx.fillStyle = "red";
+   ctx.font = "50px Arial";
+   ctx.textAlign = "center";
+   ctx.fillText("You Died: Press R to restart", scoreCanvas.width / 2, scoreCanvas.height / 2);
+
+   // Show score reset to 0
+   ctx.fillStyle = "white";
+   ctx.font = "20px Arial";
+   ctx.textAlign = "left";
+   ctx.fillText("Score: 0", 10, 30);
+}
+
+
+   
+function renderFrame() {
+   requestAnimationFrame(renderFrame);
+   let time = Date.now() / 1000 - startTime;
+   let t = time * 2;
+   let sway = 0.2 * Math.sin(t);
+
+   // Update the positions of the segments
+   updateSegments();
+
+   // Clear the canvas for rendering new frame
+   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+   let dx = segmentPositions[0].x - foodPosition.x;
+   let dy = segmentPositions[0].y - foodPosition.y;
+   if (Math.sqrt(dx * dx + dy * dy) < 0.1) { // Collision detection threshold
+      score++; // Increase score
+      renderScore(); // Update the score display
+      spawnFood(); // Spawn new food at a random location after collision
+   }
+
+   M.identity().perspective(3);
+   M.save();
+   M.translate(foodPosition.x, foodPosition.y, 0);
+   M.scale(0.05, 0.05, 0.05);
+   render(Sphere, [1, 0, 0]);
+   M.restore();
+
+   // Render the centipede segments based on their updated positions
+   renderCentipede();
+
+   function renderCentipede() {
+      for (let i = 0; i < numSegments; i++) {
+         let segment = segmentPositions[i];
+         let phaseOffset = i * Math.PI / 8;
+         let segmentSway = sway * Math.cos(t + phaseOffset); // Use fast t for swaying effect
+
+         // Set each segment's position
+         M.identity().perspective(3).translate(segment.x, segment.y, 0);
+
+         // Head rendering with eyes and sway
+         if (i === 0) {
+            M.save();
+            M.rotateY(segmentSway);
+            M.save();
+               M.scale(0.1, 0.1, 0.1);
+               render(Sphere, headColor); // Render head
+
+               // Left Eye
+               M.save();
+               M.translate(-0.03, 0.06, 0.05);
+               M.scale(0.02, 0.02, 0.02);
+               render(Sphere, [0, 0, 0]); // Black left eye
+               M.restore();
+
+               // Right Eye
+               M.save();
+               M.translate(0.03, 0.06, 0.05);
+               M.scale(0.02, 0.02, 0.02);
+               render(Sphere, [0, 0, 0]); // Black right eye
+               M.restore();
+
+            M.restore();
+            M.restore();
+         } else {
+            // Body segment rendering with sway
+            M.save();
+            M.rotateY(segmentSway);
+            M.save();
+               M.scale(bodyWidth, 0.1, 0.1);
+               render(Sphere, bodyColor);
+            M.restore();
+
+            // Legs on each side of the body segment
+            for (let side = -1; side <= 1; side += 2) {
+               let legPhase = t * legFrequency + phaseOffset * side;
+               let knee = 0.5 + 0.5 * Math.sin(legPhase);
+
+               M.save();
+               M.translate(0, 0, side * bodyWidth);
+               M.rotateX(0.2 * Math.sin(t + phaseOffset));
+               M.rotateZ(knee);
+
+               // Upper leg
+               M.save();
+                  M.translate(0, -0.2 / 2, 0);
+                  M.scale(0.05, 0.2 / 2, 0.05);
+                  render(Sphere, bodyColor);
+               M.restore();
+
+               // Lower leg
+               M.translate(0, -0.2, 0);
+               M.rotateZ(-2 * knee);
+               M.save();
+                  M.translate(0, -0.2 / 2, 0);
+                  M.scale(0.05, 0.2 / 2, 0.05);
+                  render(Sphere, bodyColor);
+               M.restore();
+
+               // Foot
+               M.translate(0, -0.2, 0);
+               M.save();
+                  M.translate(0.2 / 4, 0, 0);
+                  M.scale(0.2 / 4, 0.05, 0.05);
+                  render(Sphere, bodyColor);
+               M.restore();
+
+               M.restore();
+            }
+            M.restore();
+         }
+      }
+   }
+}
+   requestAnimationFrame(renderFrame);
+   
+   </script>
+   
+   
+   
