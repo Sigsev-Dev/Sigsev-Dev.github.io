@@ -1,0 +1,98 @@
+<body bgcolor=#000000>
+   <center><h1 style="color: white; text-align: center;">Trying Noise with Textures</h1>
+     <canvas id="canvas1" width=800 height=800></canvas>
+     <script src="lib.js"></script>
+     <script>
+       // Initialize noise generation (simple Perlin noise)
+       const generateNoiseTexture = (size, seed) => {
+         const canvas = document.createElement("canvas");
+         canvas.width = canvas.height = size;
+         const ctx = canvas.getContext("2d");
+         const imageData = ctx.createImageData(size, size);
+         const data = imageData.data;
+ 
+         for (let x = 0; x < size; x++) {
+           for (let y = 0; y < size; y++) {
+             const value = Math.abs(Math.sin((x + y + seed) * 0.1) * 255);
+             const index = (x + y * size) * 4;
+             data[index] = value; // Red
+             data[index + 1] = value; // Green
+             data[index + 2] = value; // Blue
+             data[index + 3] = 255; // Alpha
+           }
+         }
+ 
+         ctx.putImageData(imageData, 0, 0);
+         return canvas;
+       };
+ 
+       const textures = [];
+       const textureSize = 128;
+ 
+       function updateTextures(time) {
+         for (let i = 0; i < 8; i++) {
+           const noiseTexture = generateNoiseTexture(textureSize, time + i * 10);
+           const textureCanvas = document.createElement("canvas");
+           textureCanvas.width = textureCanvas.height = textureSize;
+           const ctx = textureCanvas.getContext("2d");
+           ctx.drawImage(noiseTexture, 0, 0);
+           textures[i] = textureCanvas;
+           texture(i, textureCanvas.toDataURL()); 
+         }
+       }
+ 
+       function createRubikCube() {
+         return [
+           [-0.30, 0.30, 0.30],   // Top-left front
+           [0.30, 0.30, 0.30],    // Top-right front
+           [-0.30, -0.30, 0.30],  // Bottom-left front
+           [0.30, -0.30, 0.30],   // Bottom-right front
+           [-0.30, 0.30, -0.30],  // Top-left back
+           [0.30, 0.30, -0.30],   // Top-right back
+           [-0.30, -0.30, -0.30], // Bottom-left back
+           [0.30, -0.30, -0.30],  // Bottom-right back
+         ];
+       }
+ 
+       const randomSpeeds = Array.from({ length: 8 }, () => ({
+         x: Math.random() * 2 - 1, 
+         y: Math.random() * 2 - 1,
+         z: Math.random() * 2 - 1, 
+       }));
+ 
+       function drawFrame() {
+         requestAnimationFrame(drawFrame);
+         let t = Date.now() / 1000;
+ 
+         // Update textures dynamically
+         updateTextures(t);
+ 
+         M.S().perspective(3);
+ 
+         M.S()
+           .turnX(t * 0.5) 
+           .turnY(t * 0.5); 
+ 
+         const positions = createRubikCube();
+ 
+         positions.forEach((pos, i) => {
+           const speed = randomSpeeds[i]; 
+           M.S()
+             .move(pos[0], pos[1], pos[2]) 
+             .turnX(t * speed.x)
+             .turnY(t * speed.y)
+             .turnZ(t * speed.z)
+             .scale(0.2)
+             .draw(Cube(), [1, 1, 1], 1, 2)
+             .R();
+         });
+ 
+         M.R();
+         M.R();
+       }
+ 
+       requestAnimationFrame(drawFrame);
+     </script>
+   </center>
+ </body>
+ 
