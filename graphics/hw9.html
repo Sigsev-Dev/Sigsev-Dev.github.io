@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spline Curve Editor</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 1px solid #fff;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    #controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px;
+    }
+    button {
+      padding: 5px 10px;
+      background: #555;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #777;
+    }
+  </style>
+</head>
+<body>
+  <h1>Spline Curve Editor</h1>
+  <div id="controls">
+    <button id="addPoint">Add Point</button>
+    <button id="deletePoint">Delete Last Point</button>
+    <button id="playAnimation">Play Animation</button>
+  </div>
+  <canvas id="splineCanvas" width="800" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('splineCanvas');
+    const ctx = canvas.getContext('2d');
+    const points = [];
+    let selectedPoint = null;
+    let animationFrame = null;
+    let time = 0;
+    let animationActive = false;
+
+    const hermiteSpline = (P0, P1, R0, R1, t) => {
+      const h1 = 2 * t ** 3 - 3 * t ** 2 + 1;
+      const h2 = -2 * t ** 3 + 3 * t ** 2;
+      const h3 = t ** 3 - 2 * t ** 2 + t;
+      const h4 = t ** 3 - t ** 2;
+      return [
+        h1 * P0[0] + h2 * P1[0] + h3 * R0[0] + h4 * R1[0],
+        h1 * P0[1] + h2 * P1[1] + h3 * R0[1] + h4 * R1[1],
+      ];
+    };
+
+    const drawSpline = () => {
+      if (points.length < 2) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const P0 = points[i].pos;
+        const P1 = points[i + 1].pos;
+        const R0 = points[i].rate || [50, 0]; // Default rate vector
+        const R1 = points[i + 1].rate || [-50, 0];
+
+        ctx.beginPath();
+        ctx.strokeStyle = 'white';
+
+        for (let t = 0; t <= 1; t += 0.01) {
+          const [x, y] = hermiteSpline(P0, P1, R0, R1, t);
+          ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      points.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.pos[0], p.pos[1], 5, 0, Math.PI * 2);
+        ctx.fillStyle = p === selectedPoint ? 'yellow' : 'red';
+        ctx.fill();
+      });
+    };
+
+    const animateShapes = () => {
+      if (!animationActive) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      time += 0.01;
+      let animationPoint = [400, 300];
+      if (points.length >= 2) {
+        const P0 = points[0].pos;
+        const P1 = points[1].pos;
+        const R0 = points[0].rate || [50, 0];
+        const R1 = points[1].rate || [-50, 0];
+        animationPoint = hermiteSpline(P0, P1, R0, R1, (Math.sin(time) + 1) / 2);
+      }
+
+      ctx.fillStyle = 'blue';
+      ctx.beginPath();
+      ctx.arc(animationPoint[0], animationPoint[1], 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      drawSpline();
+      animationFrame = requestAnimationFrame(animateShapes);
+    };
+
+    // const toggleAnimation = () => {
+    //   animationActive = !animationActive;
+    //   if (animationActive) {
+    //     document.getElementById('playAnimation').innerText = 'Pause Animation';
+    //     animateShapes();
+    //   } else {
+    //     document.getElementById('playAnimation').innerText = 'Play Animation';
+    //     cancelAnimationFrame(animationFrame);
+    //   }
+    // };
+
+    const findPoint = (x, y) => {
+      return points.find((p) => {
+        const dx = p.pos[0] - x;
+        const dy = p.pos[1] - y;
+        return Math.sqrt(dx ** 2 + dy ** 2) < 10;
+      });
+    };
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const point = findPoint(x, y);
+      if (point) {
+        selectedPoint = point;
+      } else {
+        points.push({ pos: [x, y] });
+        drawSpline();
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!selectedPoint) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      selectedPoint.pos = [x, y];
+      drawSpline();
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      selectedPoint = null;
+    });
+
+    document.getElementById('addPoint').addEventListener('click', () => {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      points.push({ pos: [x, y] });
+      drawSpline();
+    });
+
+    document.getElementById('deletePoint').addEventListener('click', () => {
+      points.pop();
+      drawSpline();
+    });
+
+    document.getElementById('playAnimation').addEventListener('click', toggleAnimation);
+
+    drawSpline();
+  </script>
+</body>
+</html>
