@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arrow Throwing Game</title>
+  <style>
+    body { margin: 0; display: flex; flex-direction: row; height: 100vh; }
+    #drawCanvas { width: 50%; height: 100%; background-color: white; border-right: 2px solid black; }
+    #gameContainer { width: 50%; height: 100%; background-color: lightgray; position: relative; }
+    button { position: absolute; top: 20px; left: 20px; z-index: 20; padding: 10px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <canvas id="drawCanvas"></canvas>
+  <div id="gameContainer">
+    <button id="throwButton" disabled>Throw Arrow</button>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simplex-noise/simplex-noise.min.js"></script>
+  <script>
+    // Canvas Variables
+    const drawCanvas = document.getElementById('drawCanvas');
+    const ctx = drawCanvas.getContext('2d');
+    drawCanvas.width = drawCanvas.offsetWidth;
+    drawCanvas.height = drawCanvas.offsetHeight;
+
+    // Game Variables
+    let scene, camera, renderer, arrow, throwing = false;
+    const simplex = new SimplexNoise();
+
+    // Drawing State
+    let drawing = false;
+    let points = []; // Stores points of the current stroke
+
+    // Initialize Three.js
+    function initThreeJS() {
+      const gameContainer = document.getElementById('gameContainer');
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(gameContainer.offsetWidth, gameContainer.offsetHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      gameContainer.appendChild(renderer.domElement);
+
+      // Create scene
+      scene = new THREE.Scene();
+
+      // Add procedural terrain
+      createTerrain();
+
+      // Add stickman target
+      createStickmanTarget();
+
+      // Camera setup
+      camera = new THREE.PerspectiveCamera(75, gameContainer.offsetWidth / gameContainer.offsetHeight, 0.1, 1000);
+      camera.position.set(0, 5, 20);
+      camera.lookAt(0, 0, -15);
+
+      // Lighting
+      const sun = new THREE.DirectionalLight(0xffffff, 1);
+      sun.position.set(25, 25, -30);
+      sun.castShadow = true;
+      sun.shadow.mapSize.width = 1024;
+      sun.shadow.mapSize.height = 1024;
+      sun.shadow.camera.near = 0.5;
+      sun.shadow.camera.far = 200;
+      scene.add(sun);
+
+      // Visible glowing sun object
+      const sunGeometry = new THREE.SphereGeometry(3, 32, 32);
+      const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xFED33C, emissive: 0xffd700, emissiveIntensity: 1 });
+      const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+      sunMesh.position.copy(sun.position);
+      scene.add(sunMesh);
+
+      // Add closely packed reflective bubbles around the sun
+      const bubbleGeometry = new THREE.SphereGeometry(1, 16, 16);
+      const bubbleMaterial = new THREE.MeshBasicMaterial({ color: 0xFFF1C9, transparent: true, opacity: 0.015 });
+
+      for (let i = 0; i < 1500; i++) {
+        const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
+        const phi = Math.acos(2 * Math.random() - 1); // Polar angle
+        const theta = 2 * Math.PI * Math.random(); // Azimuthal angle
+        const radius = 3.1; // Slightly larger than sun's radius
+
+        bubble.position.set(
+          sun.position.x + radius * Math.sin(phi) * Math.cos(theta),
+          sun.position.y + radius * Math.sin(phi) * Math.sin(theta),
+          sun.position.z + radius * Math.cos(phi)
+        );
+        scene.add(bubble);
+      }
+
+      const ambientLight = new THREE.AmbientLight(0x444444);
+      scene.add(ambientLight);
+
+      animate();
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Arrow animation
+        if (throwing && arrow) {
+          arrow.position.z -= 0.5; // Move forward toward the stickman
+          arrow.rotation.x += 0.02; // Slight rotation for effect
+
+          // Stop when it reaches the stickman
+          if (arrow.position.z <= -15) {
+            throwing = false;
+            document.getElementById('throwButton').disabled = false;
+
+            const dist = arrow.position.distanceTo(new THREE.Vector3(0, 0, -15));
+            if (dist < 2) {
+              alert('Hit the stickman! 🎯');
+            } else {
+              alert('Missed the stickman! ❌');
+            }
+
+            // Reset arrow
+            scene.remove(arrow);
+            arrow = null;
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+    }
+
+    // Drawing Events
+    drawCanvas.addEventListener('mousedown', () => {
+      drawing = true;
+      points = [];
+      ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height); // Clear canvas
+    });
+
+    drawCanvas.addEventListener('mousemove', (e) => {
+      if (!drawing) return;
+
+      const x = e.offsetX;
+      const y = e.offsetY;
+      points.push({ x, y });
+
+      // Draw stroke in black
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'black';
+      ctx.beginPath();
+      if (points.length > 1) {
+        const prev = points[points.length - 2];
+        ctx.moveTo(prev.x, prev.y);
+      }
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    });
+
+    drawCanvas.addEventListener('mouseup', () => {
+      drawing = false;
+
+      // Analyze the shape
+      if (isArrow(points)) {
+        createArrow();
+        document.getElementById('throwButton').disabled = false;
+      } else {
+        alert('Draw a valid arrow shape!');
+      }
+    });
+
+    // Check if the drawn shape is an arrow
+    function isArrow(points) {
+      return points.length > 20; // Simple check: enough points
+    }
+
+    // Create 3D Arrow
+    function createArrow() {
+      // Arrow Shaft
+      const shaftGeometry = new THREE.CylinderGeometry(0.1, 0.1, 5, 32);
+      const shaftMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+      const shaft = new THREE.Mesh(shaftGeometry, shaftMaterial);
+      shaft.rotation.x = Math.PI / 2;
+      shaft.castShadow = true;
+
+      // Arrowhead
+      const headGeometry = new THREE.ConeGeometry(0.3, 1, 32);
+      const headMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+      const head = new THREE.Mesh(headGeometry, headMaterial);
+      head.position.y = 2.5;
+      head.castShadow = true;
+
+      // Group Arrow Parts
+      arrow = new THREE.Group();
+      arrow.add(shaft);
+      arrow.add(head);
+      arrow.position.set(0, 0, 5); // Start position in front of the camera
+      scene.add(arrow);
+    }
+
+    // Create Stickman Target
+    function createStickmanTarget() {
+      // Stickman head
+      const headGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+      const headMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+      const head = new THREE.Mesh(headGeometry, headMaterial);
+      head.position.set(0, 1.5, -15);
+      head.castShadow = true;
+      scene.add(head);
+
+      // Stickman body
+      const bodyGeometry = new THREE.CylinderGeometry(0.2, 0.2, 2, 32);
+      const bodyMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      body.position.set(0, 0.5, -15);
+      body.castShadow = true;
+      scene.add(body);
+    }
+
+    // Create Procedural Terrain with Perlin Noise
+    function createTerrain() {
+      const size = 50;
+      const segments = 100;
+      const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+      const material = new THREE.MeshStandardMaterial({ color: 0x228B22, side: THREE.DoubleSide });
+
+      const vertices = geometry.attributes.position.array;
+      for (let i = 0; i < vertices.length; i += 3) {
+        const x = vertices[i] / size;
+        const y = vertices[i + 1] / size;
+        vertices[i + 2] = simplex.noise2D(x * 5, y * 5) * 2; // Perlin noise for height
+      }
+
+      geometry.computeVertexNormals();
+
+      const terrain = new THREE.Mesh(geometry, material);
+      terrain.rotation.x = -Math.PI / 2; // Rotate to lay flat
+      terrain.position.y = -2; // Lower terrain slightly
+      terrain.receiveShadow = true;
+      scene.add(terrain);
+    }
+
+    // Throw Arrow
+    document.getElementById('throwButton').addEventListener('click', () => {
+      if (arrow) {
+        throwing = true;
+        document.getElementById('throwButton').disabled = true;
+      }
+    });
+
+    // Handle Resize
+    window.addEventListener('resize', () => {
+      drawCanvas.width = drawCanvas.offsetWidth;
+      drawCanvas.height = drawCanvas.offsetHeight;
+
+      renderer.setSize(document.getElementById('gameContainer').offsetWidth, document.getElementById('gameContainer').offsetHeight);
+      camera.aspect = renderer.domElement.width / renderer.domElement.height;
+      camera.updateProjectionMatrix();
+    });
+
+    // Initialize Everything
+    initThreeJS();
+  </script>
+</body>
+</html>
