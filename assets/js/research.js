@@ -97,7 +97,63 @@ const research = [
     codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw5.html",  // Add link to code
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw5.html",  // Add link to demo
   },
-  
+  {
+    title: "Stuff you can do just out of matrices",
+    authors:
+      "Dev Pant, Ken Perlin",
+    conferences:
+      "Animating a creature movement with matrix transformations",
+    researchYr: 2024,
+    citebox: "popup2",
+    image: "assets/images/hw6_ss.png",
+    citation: {
+      vancouver:
+        "",
+    },
+    abstract:
+      "This is currently left empty and this can be considered as a dummy data 2",
+    absbox: "absPopup2",
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw6.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/hw6.html",  // Add link to demo
+  },
+  {
+    title: "Human-Computer Interaction",
+    authors:
+      "Dev Pant, Ken Perlin",
+    conferences:
+      "Animating a creature movement with human input",
+    researchYr: 2024,
+    citebox: "popup2",
+    image: "assets/images/hw7_ss.png",
+    citation: {
+      vancouver:
+        "",
+    },
+    abstract:
+      "This is currently left empty and this can be considered as a dummy data 2",
+    absbox: "absPopup2",
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw7.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/hw7.html",  // Add link to demo
+  },
+  {
+    title: "Splines",
+    authors:
+      "Dev Pant, Ken Perlin",
+    conferences:
+      "Drawing Bezier and Spline curves",
+    researchYr: 2024,
+    citebox: "popup2",
+    image: "assets/images/hw9_ss.png",
+    citation: {
+      vancouver:
+        "",
+    },
+    abstract:
+      "This is currently left empty and this can be considered as a dummy data 2",
+    absbox: "absPopup2",
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw9.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/hw9.html",  // Add link to demo
+  },
 ];
 
 AOS.init();
