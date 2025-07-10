@@ -1,600 +1,1101 @@
-<body bgcolor=black>
-   <h1 style="color: white; text-align: center;">Centipede Game: Use WASD keys (Don't touch borders)</h1> <!-- Game Title -->
-
-<div style="position: relative; width: 1200px; height: 700px; margin: auto;">
-   <!-- Score Canvas -->
-   <canvas id="scoreCanvas" width="1200" height="700" style="position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none;"></canvas>
-   
-   <!-- Main Game Canvas -->
-   <canvas id="canvas1" width="1200" height="700" style="position: absolute; top: 0; left: 0; z-index: 0;"></canvas>
-</div>
-
-<center>
-   <label for="speedControl" style="color: white;">Centipede Speed:</label>
-   <input type="range" id="speedControl" min="1" max="10" value="2" style="width: 400px;">
-</center>
-
-   <script>
-   
-   // MATRIX FUNCTIONS
-   
-   let mInverse = m => {
-      let dst = [], det = 0, cofactor = (c, r) => {
-         let s = (i, j) => m[c+i & 3 | (r+j & 3) << 2];
-         return (c+r & 1 ? -1 : 1) * ( (s(1,1) * (s(2,2) * s(3,3) - s(3,2) * s(2,3)))
-                                     - (s(2,1) * (s(1,2) * s(3,3) - s(3,2) * s(1,3)))
-                                     + (s(3,1) * (s(1,2) * s(2,3) - s(2,2) * s(1,3))) );
+<!doctype html>
+<html>
+  <head>
+    <script src="ml5.min.js"></script>
+    <style>
+      /*
+      * {
+        margin: 0;
+        padding: 0;
       }
-      for (let n = 0 ; n < 16 ; n++) dst.push(cofactor(n >> 2, n & 3));
-      for (let n = 0 ; n <  4 ; n++) det += m[n] * dst[n << 2]; 
-      for (let n = 0 ; n < 16 ; n++) dst[n] /= det;
-      return dst;
-   }
-   let matrixMultiply = (a, b) => {
-      let dst = [];
-      for (let n = 0 ; n < 16 ; n++)
-         dst.push(a[n&3]*b[n&12] + a[n&3|4]*b[n&12|1] + a[n&3|8]*b[n&12|2] + a[n&3|12]*b[n&12|3]);
-      return dst;
-   }
-   let C = t => Math.cos(t);
-   let S = t => Math.sin(t);
-   let mIdentity = () => [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
-   let mPerspective = (fl, m) => matrixMultiply(m, [1,0,0,0, 0,1,0,0, 0,0,1,-1/fl, 0,0,0,1]);
-   let mRotateX = (t, m) => matrixMultiply(m, [1,0,0,0, 0,C(t),S(t),0, 0,-S(t),C(t),0, 0,0,0,1]);
-   let mRotateY = (t, m) => matrixMultiply(m, [C(t),0,-S(t),0, 0,1,0,0, S(t),0,C(t),0, 0,0,0,1]);
-   let mRotateZ = (t, m) => matrixMultiply(m, [C(t),S(t),0,0, -S(t),C(t),0,0, 0,0,1,0, 0,0,0,1]);
-   let mScale = (x,y,z, m) => matrixMultiply(m, [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1]);
-   let mTranslate = (x,y,z, m) => matrixMultiply(m, [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]);
-   
-   // MATRIX OBJECT, BUILT FROM MATRIX FUNXTIONS
-   
-   function Matrix() {
-      let stack = [mIdentity()], top = 0;
-      let set = arg => { stack[top] = arg; return this; }
-      let get = () => stack[top];
-   
-      this.identity = () => set(mIdentity());
-      this.perspective = fl => set(mPerspective(fl, get()));
-      this.rotateX = t => set(mRotateX(t, get()));
-      this.rotateY = t => set(mRotateY(t, get()));
-      this.rotateZ = t => set(mRotateZ(t, get()));
-      this.scale = (x,y,z) => set(mScale(x,y,z, get()));
-      this.translate = (x,y,z) => set(mTranslate(x,y,z, get()));
-      this.get = () => get();
-      this.save = () => set(stack[top++].slice());
-      this.restore = () => --top;
-   }
-   
-   // INITIALIZE GL
-   
-   let start_gl = (canvas, vertexSize, vertexShader, fragmentShader) => {
-      let gl = canvas.getContext("webgl");
-      let program = gl.createProgram();
-      gl.program = program;
-      let addshader = (type, src) => {
-         let shader = gl.createShader(type);
-         gl.shaderSource(shader, src);
-         gl.compileShader(shader);
-         if (! gl.getShaderParameter(shader, gl.COMPILE_STATUS))
-            throw "Cannot compile shader:\n\n" + gl.getShaderInfoLog(shader);
-         gl.attachShader(program, shader);
+      */
+      body {
+        background-color: #000;
+      }
+      main {
+        position: relative;
+        width: 1280px;
+        height: 720px;
+      }
+      nav {
+        width: 100%;
+      }
+      canvas,
+      video,
+      section {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+      video {
+        z-index: -100;
+        display: none;
+        /*
+        */
+      }
+      canvas {
+        z-index: 100;
+      }
+      section {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+      }
+      section div {
+        flex-grow: 1;
+        width: 50%;
+      }
+      input[type="range"] {
+        position: relative;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 5em;
+        border-radius: 5em;
+        -webkit-appearance: none;
+        background: #d3d3d3;
+        outline: none;
+        opacity: 0.7;
+        -webkit-transition: 0.2s;
+        transition: opacity 0.2s;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        vertical-align: middle;
+        -webkit-appearance: none;
+        appearance: none;
+        width: 8em;
+        height: 8em;
+        border-radius: 4em;
+        background: #ffffff;
+        cursor: pointer;
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        width: 8em;
+        height: 8em;
+        border-radius: 4em;
+        background: #ffffff;
+        cursor: pointer;
+      }
+      input[type="range"]:focus,
+      input[type="range"]:focus::-webkit-slider-thumb {
+        opacity: 1;
+      }
+      button#cameraButton {
+        text-transform: uppercase;
+        bottom: 0;
+        left: 0;
+        height: 2em;
+        width: 100%;
+        font-size: 1.5em;
+        z-index: 100;
+      }
+    </style>
+  </head>
+
+  <body>
+    <center>
+      <center><h1 style="color: white;">Human Computer Interaction</h1>
+      <button id="cameraButton">Click here to activate webcam</button>
+      <main>
+        <canvas id="canvas1" width="1280" height="720"></canvas>
+        <section>
+          <div>
+            <input type="range" min="1" max="100" value="50" class="slider" />
+          </div>
+          <div>
+            <input type="range" min="1" max="100" value="50" class="slider" />
+          </div>
+        </section>
+        <video id="video"></video>
+      </main>
+    </center>
+    <script>
+      // A TINY MATRIX LIBRARY
+
+      let mInverse = (m) => {
+        let dst = [],
+          det = 0,
+          cofactor = (c, r) => {
+            let s = (i, j) => m[((c + i) & 3) | (((r + j) & 3) << 2)];
+            return ((c + r) & 1 ? -1 : 1) * (s(1, 1) * (s(2, 2) * s(3, 3) - s(3, 2) * s(2, 3)) - s(2, 1) * (s(1, 2) * s(3, 3) - s(3, 2) * s(1, 3)) + s(3, 1) * (s(1, 2) * s(2, 3) - s(2, 2) * s(1, 3)));
+          };
+        for (let n = 0; n < 16; n++) dst.push(cofactor(n >> 2, n & 3));
+        for (let n = 0; n < 4; n++) det += m[n] * dst[n << 2];
+        for (let n = 0; n < 16; n++) dst[n] /= det;
+        return dst;
       };
-      addshader(gl.VERTEX_SHADER  , vertexShader  );
-      addshader(gl.FRAGMENT_SHADER, fragmentShader);
-      gl.linkProgram(program);
-      if (! gl.getProgramParameter(program, gl.LINK_STATUS))
-         throw "Could not link the shader program!";
-      gl.useProgram(program);
-      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-      gl.enable(gl.DEPTH_TEST);
-      gl.depthFunc(gl.LEQUAL);
-      let vertexAttribute = (name, size, position) => {
-         let attr = gl.getAttribLocation(program, name);
-         gl.enableVertexAttribArray(attr);
-         gl.vertexAttribPointer(attr, size, gl.FLOAT, false, vertexSize * 4, position * 4);
-      }
-      vertexAttribute('aPos', 3, 0);
-      vertexAttribute('aNor', 3, 3);
-      return gl;
-   }
-   
-   // CREATE A TRIANGLE_STRIP MESH
-   
-   let createMesh = (nu, nv, p) => {
-      let mesh = [];
-      for (let j = nv-1 ; j >= 0 ; j--) {
-         for (let i = 0 ; i <= nu ; i++)
-            mesh.push(p(i/nu,(j+1)/nv), p(i/nu,j/nv));
-         mesh.push(p(1,j/nv), p(0,j/nv));
-      }
-      return mesh.flat();
-   }
-   
-   // DEFINE VARIOUS KINDS OF TRIANGLE_STRIP MESHES
-   
-   let sphere = (nu, nv) => createMesh(nu, nv, (u,v) => {
-      let theta = 2 * Math.PI * u;
-      let phi = Math.PI * (v - .5);
-      let x = C(phi) * C(theta),
-          y = C(phi) * S(theta),
-          z = S(phi);
-      return [ x,y,z, x,y,z ];
-   });
-   
-   let tube = (nu, nv) => createMesh(nu, nv, (u,v) => {
-      let x = C(2 * Math.PI * u),
-          y = S(2 * Math.PI * u),
-          z = 2 * v - 1;
-      return [ x,y,z, x,y,0 ];
-   });
-   
-   let disk = (nu, nv) => createMesh(nu, nv, (u,v) => {
-      let x = v * C(2 * Math.PI * u),
-          y = v * S(2 * Math.PI * u);
-      return [ x,y,0, 0,0,1 ];
-   });
-   
-   let cylinder = (nu, nv) => createMesh(nu, nv, (u,v) => {
-      let x = C(2 * Math.PI * u),
-          y = S(2 * Math.PI * u);
-      switch (5 * v >> 0) {
-      case 0: return [ 0,0,-1, 0,0,-1 ];
-      case 1: return [ x,y,-1, 0,0,-1 ];
-      case 2: return [ x,y,-1, x,y, 0 ];
-      case 3: return [ x,y, 1, x,y, 0 ];
-      case 4: return [ x,y, 1, 0,0, 1 ];
-      case 5: return [ 0,0, 1, 0,0, 1 ];
-      }
-   });
-   
-   let torus = (nu, nv) => createMesh(nu, nv, (u,v) => {
-      let ct = C(2 * Math.PI * u);
-      let st = S(2 * Math.PI * u);
-      let cp = C(2 * Math.PI * v);
-      let sp = S(2 * Math.PI * v);
-      let x = (1 + .5 * cp) * ct,
-          y = (1 + .5 * cp) * st,
-          z =      .5 * sp;
-      return [ x,y,z, cp*ct,cp*st,sp ];
-   });
-   
-   // SHORTCUT TO MAKE IT EASIER TO DEFINE CUBE AND OCTAHEDRON
-   
-   let strToTris = str => {
-      let tris = [];
-      for (let n = 0 ; n < str.length ; n++)
-         switch (str.charAt(n)) {
-         case 'N': tris.push(-1    ); break;
-         case 'n': tris.push(-0.577); break;
-         case '0': tris.push( 0    ); break;
-         case 'p': tris.push( 0.577); break;
-         case 'P': tris.push( 1    ); break;
-         }
-      return tris;
-   }
-   
-   // DEFINE SOME MESHES MADE FROM TRIANGLES
-   
-   let cube = strToTris(`PNP00P PPP00P NPP00P  NPP00P NNP00P PNP00P
-                         NPN00N PPN00N PNN00N  PNN00N NNN00N NPN00N
-                         PPNP00 PPPP00 PNPP00  PNPP00 PNNP00 PPNP00
-                         NNPN00 NPPN00 NPNN00  NPNN00 NNNN00 NNPN00
-                         NPP0P0 PPP0P0 PPN0P0  PPN0P0 NPN0P0 NPP0P0
-                         PNN0N0 PNP0N0 NNP0N0  NNP0N0 NNN0N0 PNN0N0`);
-   
-   let octahedron = strToTris(`00Nnnn 0N0nnn N00nnn  P00pnn 0N0pnn 00Npnn
-                               N00npn 0P0npn 00Nnpn  00Nppn 0P0ppn P00ppn
-                               00Pnnp 0N0nnp N00nnp  00Ppnp 0N0pnp P00pnp
-                               N00npp 0P0npp 00Pnpp  P00ppp 0P0ppp 00Pppp`);
-   
-   // DEFINE ALL THE OBJECT SHAPES
-   
-   let Cube       = { type: 0, mesh: new Float32Array(cube) };
-   let Cylinder   = { type: 1, mesh: new Float32Array(cylinder(20,  6)) };
-   let Disk       = { type: 1, mesh: new Float32Array(disk    (20,  1)) };
-   let Octahedron = { type: 0, mesh: new Float32Array(octahedron) };
-   let Sphere     = { type: 1, mesh: new Float32Array(sphere  (20, 10)) };
-   let Torus      = { type: 1, mesh: new Float32Array(torus   (30, 30)) };
-   let Tube       = { type: 1, mesh: new Float32Array(tube    (20,  1)) };
-   
-   // VERY SIMPLE VERTEX AND FRAGMENT SHADERS
-   
-   let vertexSize = 6;
-   let vertexShader = `
-      attribute vec3 aPos, aNor;
-      uniform mat4 uMatrix, uInvMatrix;
-      varying vec3 vPos, vNor;
-      void main() {
-         vec4 pos = uMatrix * vec4(aPos, 1.0);
-         vec4 nor = vec4(aNor, 0.0) * uInvMatrix;
-         vPos = pos.xyz;
-         vNor = nor.xyz;
-         gl_Position = pos * vec4(1.,1.,-.1,1.);
-      }
-   `;
-   
-   let fragmentShader = `
-      precision mediump float;
-      uniform vec3 uColor;
-      varying vec3 vPos, vNor;
-      void main(void) {
-         float c = .05 + max(0., dot(normalize(vNor), vec3(.57)));
-         gl_FragColor = vec4(sqrt(c * uColor), 1.);
-      }
-   `;
-   
-   // INITIALIZE GL AND GET UNIFORM NAMES
-   
-   let gl = start_gl(canvas1, vertexSize, vertexShader, fragmentShader);
-   
-   let uColor     = gl.getUniformLocation(gl.program, "uColor"    );
-   let uInvMatrix = gl.getUniformLocation(gl.program, "uInvMatrix");
-   let uMatrix    = gl.getUniformLocation(gl.program, "uMatrix"   );
-   
-   // INSTANTIATE THE MATRIX OBJECT
-   
-   let M = new Matrix();
-   
-   // RENDER ONE SHAPE, AND GIVE IT A COLOR
-   
-   let render = (Shape, color) => {
-      // SET THE VALUES OF VARIOUS UNIFORM VARIABLES
-   
-      gl.uniform3fv      (uColor    , color );
-      gl.uniformMatrix4fv(uInvMatrix, false, mInverse(M.get()));
-      gl.uniformMatrix4fv(uMatrix   , false, M.get()          );
-   
-      // RENDER THIS OBJECT
-   
-      let mesh = Shape.mesh;
-      gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
-      gl.drawArrays(Shape.type ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, mesh.length / vertexSize);
-   }
-   
-   // THE ANIMATION LOOP
-   
-   let startTime = Date.now() / 1000;
-   
-   // Centipede parameters
-   let numSegments = 5; // Number of body segments along the length
-   let segmentSpacing = 0.2; // Spacing between each body segment
-   let bodyWidth = 0.2; // Width of the body
-   let legFrequency = 3; // Frequency of leg swing
-   let headColor = [0, 0.5, 1]; // Red color for the head
-   let bodyColor = [0, 0.5, 1]; // Blue color for body and legs
+      let matrixMultiply = (a, b) => {
+        let dst = [];
+        for (let n = 0; n < 16; n++) dst.push(a[n & 3] * b[n & 12] + a[(n & 3) | 4] * b[(n & 12) | 1] + a[(n & 3) | 8] * b[(n & 12) | 2] + a[(n & 3) | 12] * b[(n & 12) | 3]);
+        return dst;
+      };
+      let C = (t) => Math.cos(t);
+      let S = (t) => Math.sin(t);
+      let mIdentity = () => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+      let mPerspective = (fl, m) => matrixMultiply(m, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -1 / fl, 0, 0, 0, 1]);
+      let mRotateX = (t, m) => matrixMultiply(m, [1, 0, 0, 0, 0, C(t), S(t), 0, 0, -S(t), C(t), 0, 0, 0, 0, 1]);
+      let mRotateY = (t, m) => matrixMultiply(m, [C(t), 0, -S(t), 0, 0, 1, 0, 0, S(t), 0, C(t), 0, 0, 0, 0, 1]);
+      let mRotateZ = (t, m) => matrixMultiply(m, [C(t), S(t), 0, 0, -S(t), C(t), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+      let mScale = (x, y, z, m) => matrixMultiply(m, [x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0, 0, 0, 0, 1]);
+      let mTranslate = (x, y, z, m) => matrixMultiply(m, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
 
-   let direction = { x: 1, y: 0 }; // Initial direction
-   let position = { x: 0, y: 0 }; // Initial position of the centipede head
-   let speed = 0.002; // Movement speed
-   let score = 0; // Game score
-   let foodPosition = { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 }; // Random food position
+      // MATRIX OBJECT, BUILT FROM MATRIX FUNXTIONS
 
-   let segmentPositions = []; // Array to store positions for each segment
+      function Matrix() {
+        let stack = [mIdentity()],
+          top = 0;
+        let set = (arg) => {
+          stack[top] = arg;
+          return this;
+        };
+        let get = () => stack[top];
 
-
-   // Get the speed control element and update the speed variable based on slider value
-   const speedControl = document.getElementById('speedControl');
-   speedControl.addEventListener('input', () => {
-      // Map slider value to a suitable speed range, e.g., 0.001 to 0.01
-      speed = speedControl.value * 0.001;
-   });
-
-   for (let i = 0; i < numSegments; i++) {
-   segmentPositions.push({ x: 0, y: 0 });
-}
-// Direction control variables
-let headDirection = { x: 1, y: 0 }; // Initial head direction
-
-      window.addEventListener('keydown', (event) => {
-         switch (event.key) {
-            case 'w':
-               headDirection = { x: 0, y: 1 };
-               break;
-            case 's':
-               headDirection = { x: 0, y: -1 };
-               break;
-            case 'a':
-               headDirection = { x: -1, y: 0 };
-               break;
-            case 'd':
-               headDirection = { x: 1, y: 0 };
-               break;
-         }
-      });
-
-   // Function to spawn new food
-   function spawnFood() {
-   foodPosition.x = (Math.random() * 1.8) - 0.9;
-   foodPosition.y = (Math.random() * 1.8) - 0.9;
-
-   console.log("New food position:", foodPosition.x, foodPosition.y);
-   // Ensure food does not spawn on the centipede head to avoid instant collection
-   let head = segmentPositions[0];
-   let dx = head.x - foodPosition.x;
-   let dy = head.y - foodPosition.y;
-   if (Math.sqrt(dx * dx + dy * dy) < 0.2) { 
-      spawnFood(); 
-   }
-}
-
-   function renderScore() {
-      const scoreCanvas = document.getElementById('scoreCanvas');
-      const ctx = scoreCanvas.getContext('2d');
-      ctx.clearRect(0, 0, scoreCanvas.width, scoreCanvas.height); // Clear previous score
-
-      ctx.fillStyle = "white"; 
-      ctx.font = "20px Arial"; 
-      ctx.fillText("Score: " + score, 10, 30); 
-   }
-
-
-   window.addEventListener('keydown', (event) => {
-   if (event.key === 'r' && gameOver) { 
-      resetGame();
-   }
-});
-
-function resetGame() {
-   gameOver = false; 
-   score = 0; 
-   renderScore(); 
-
-   segmentPositions = []; // Clear previous positions
-   for (let i = 0; i < numSegments; i++) {
-      segmentPositions.push({ x: 0, y: 0 }); 
-   }
-   headDirection = { x: 1, y: 0 }; 
-}
-   
-   // function renderCentipede() {
-   //    let time = Date.now() / 1000 - startTime;
-   //    let t = time * 2; // Speed of overall animation
-   //    let sway = 0.2 * Math.sin(t);
-   
-   //    M.identity().perspective(3);
-   
-   //    // Head of the centipede
-   //    M.save();
-   //    M.translate(0.3, 0, 0).rotateY(-Math.PI / 6 + Math.sin(t) * 0.1); // Slight head rotation
-   //    M.rotateY(sway);
-   //    M.save();
-   //       M.scale(0.15, 0.15, 0.15); // Slightly larger scale for the head
-   //       render(Sphere, headColor); // Render head
-   
-   //    M.restore();
-   //    M.restore();
-   
-   //    // Body segments and multiple legs on each side
-   //    for (let i = 0; i < numSegments; i++) {
-   //       let phaseOffset = i * Math.PI / 8; // Phase offset for wave motion across segments
-   //       let segmentSway = sway * Math.cos(t + phaseOffset)* 0.3;
-   //       M.rotateY(segmentSway);
-   
-   //       M.save();
-   //       M.translate(-i * segmentSpacing, 0, 0); // Position each body segment along the x-axis
-   //       M.save();
-   //          M.scale(bodyWidth, 0.1, 0.1); // Scale the body segment for a long, horizontal shape
-   //          render(Sphere, bodyColor); // Render the body segment
-   //       M.restore();
-   
-   //       // Legs on each side of the body segment
-   //       for (let side = -1; side <= 1; side += 2) {
-   //          let legPhase = t * legFrequency + phaseOffset * side; // Phase shift for wave pattern
-   //          let knee = 0.5 + 0.5 * Math.sin(legPhase); // Knee bend
-   
-   //          M.save();
-   //          M.translate(0, 0, side * bodyWidth); // Position legs on left and right of the body
-   //          M.rotateX(0.2 * Math.sin(t + phaseOffset));
-   //          M.rotateZ(knee);
-   
-   //          // Upper leg (same as in the original file)
-   //          M.save();
-   //             M.translate(0, -0.2 / 2, 0);
-   //             M.scale(0.05, 0.2 / 2, 0.05);
-   //             render(Sphere, bodyColor);
-   //          M.restore();
-   
-   //          // Lower leg (same as in the original file)
-   //          M.translate(0, -0.2, 0);
-   //          M.rotateZ(-2 * knee);
-   //          M.save();
-   //             M.translate(0, -0.2 / 2, 0);
-   //             M.scale(0.05, 0.2 / 2, 0.05);
-   //             render(Sphere, bodyColor);
-   //          M.restore();
-   
-   //          // Foot (same as in the original file)
-   //          M.translate(0, -0.2, 0);
-   //          M.save();
-   //             M.translate(0.2 / 4, 0, 0);
-   //             M.scale(0.2 / 4, 0.05, 0.05);
-   //             render(Sphere, bodyColor);
-   //          M.restore();
-   
-   //          M.restore();
-   //       }
-   //       M.restore();
-   //    }
-   // }
-   // Update segment positions
-   let gameOver = false;
-
-   function updateSegments() {
-   if (gameOver) return; // Stop updating if the game is over
-
-   // Update the head position
-   segmentPositions[0].x += headDirection.x * speed;
-   segmentPositions[0].y += headDirection.y * speed;
-
-   // Check if the head goes out of bounds, indicating game over
-   if (segmentPositions[0].x > 1 || segmentPositions[0].x < -1 || segmentPositions[0].y > 1 || segmentPositions[0].y < -1) {
-      score = 0; // Reset score
-      gameOver = true; // Set game over flag
-      renderScore(); // Update score display to 0
-      showGameOverMessage(); // Show "You Died" message
-      return; // Stop further updates
-   }
-
-   // Update each segment to follow the one in front of it
-   for (let i = 1; i < numSegments; i++) {
-      let target = segmentPositions[i - 1];
-      let segment = segmentPositions[i];
-
-      // Move segment towards the target segment position
-      let dx = target.x - segment.x;
-      let dy = target.y - segment.y;
-      let distance = Math.sqrt(dx * dx + dy * dy);
-
-      // Only move if the segment is not already at the target position
-      if (distance > segmentSpacing) {
-         segment.x += (dx / distance) * speed;
-         segment.y += (dy / distance) * speed;
+        this.identity = () => set(mIdentity());
+        this.perspective = (fl) => set(mPerspective(fl, get()));
+        this.rotateX = (t) => set(mRotateX(t, get()));
+        this.rotateY = (t) => set(mRotateY(t, get()));
+        this.rotateZ = (t) => set(mRotateZ(t, get()));
+        this.scale = (x, y, z) => set(mScale(x, y, z, get()));
+        this.translate = (x, y, z) => set(mTranslate(x, y, z, get()));
+        this.get = () => get();
+        this.save = () => set(stack[top++].slice());
+        this.restore = () => --top;
       }
 
-      // Apply wrap-around for each segment
-      if (segment.x > 1) segment.x = -1;
-      else if (segment.x < -1) segment.x = 1;
-      if (segment.y > 1) segment.y = -1;
-      else if (segment.y < -1) segment.y = 1;
-   }
-}
+      // INITIALIZE GL
 
-function showGameOverMessage() {
-   const scoreCanvas = document.getElementById('scoreCanvas');
-   const ctx = scoreCanvas.getContext('2d');
-   
-   // Clear the score canvas and display the game-over message
-   ctx.clearRect(0, 0, scoreCanvas.width, scoreCanvas.height);
-   ctx.fillStyle = "red";
-   ctx.font = "50px Arial";
-   ctx.textAlign = "center";
-   ctx.fillText("You Died: Press R to restart", scoreCanvas.width / 2, scoreCanvas.height / 2);
+      let start_gl = (canvas, vertexSize, vertexShader, fragmentShader) => {
+        let gl = canvas.getContext("webgl");
+        let program = gl.createProgram();
+        gl.program = program;
+        let addshader = (type, src) => {
+          let shader = gl.createShader(type);
+          gl.shaderSource(shader, src);
+          gl.compileShader(shader);
+          if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw "Cannot compile shader:\n\n" + gl.getShaderInfoLog(shader);
+          gl.attachShader(program, shader);
+        };
+        addshader(gl.VERTEX_SHADER, vertexShader);
+        addshader(gl.FRAGMENT_SHADER, fragmentShader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw "Could not link the shader program!";
+        gl.useProgram(program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        let vertexAttribute = (name, size, position) => {
+          let attr = gl.getAttribLocation(program, name);
+          gl.enableVertexAttribArray(attr);
+          gl.vertexAttribPointer(attr, size, gl.FLOAT, false, vertexSize * 4, position * 4);
+        };
+        vertexAttribute("aPos", 3, 0);
+        vertexAttribute("aNor", 3, 3);
+        return gl;
+      };
 
-   // Show score reset to 0
-   ctx.fillStyle = "white";
-   ctx.font = "20px Arial";
-   ctx.textAlign = "left";
-   ctx.fillText("Score: 0", 10, 30);
-}
+      //CREATE A TRIANGLE_STRIP MESH
 
+      let createMesh = (nu, nv, p) => {
+        let mesh = [];
+        for (let j = nv - 1; j >= 0; j--) {
+          for (let i = 0; i <= nu; i++) mesh.push(p(i / nu, (j + 1) / nv), p(i / nu, j / nv));
+          mesh.push(p(1, j / nv), p(0, j / nv));
+        }
+        return mesh.flat();
+      };
 
-   
-function renderFrame() {
-   requestAnimationFrame(renderFrame);
-   let time = Date.now() / 1000 - startTime;
-   let t = time * 2;
-   let sway = 0.2 * Math.sin(t);
+      // DEFINE VARIOUS KINDS OF TRIANGLE_STRIP MESHES
 
-   // Update the positions of the segments
-   updateSegments();
+      let customGeometry = (nu, nv) =>
+        createMesh(nu, nv, (u, v) => {
+          let theta = 2 * Math.PI * u;
+          let phi = Math.PI * (v - 0.5);
+          let x = C(phi) * C(theta);
+          let y = C(phi) * S(theta);
+          let z = 0.7 * S(phi) + 0.3 * S(theta * 4);
+          return [x, y, z, x, y, z];
+        });
 
-   // Clear the canvas for rendering new frame
-   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      let sphere = (nu, nv) =>
+        createMesh(nu, nv, (u, v) => {
+          let theta = 2 * Math.PI * u;
+          let phi = Math.PI * (v - 0.5);
+          let x = C(phi) * C(theta),
+            y = C(phi) * S(theta),
+            z = S(phi);
+          return [x, y, z, x, y, z];
+        });
 
-   let dx = segmentPositions[0].x - foodPosition.x;
-   let dy = segmentPositions[0].y - foodPosition.y;
-   if (Math.sqrt(dx * dx + dy * dy) < 0.1) { // Collision detection threshold
-      score++; // Increase score
-      renderScore(); // Update the score display
-      spawnFood(); // Spawn new food at a random location after collision
-   }
+      let tube = (nu, nv) =>
+        createMesh(nu, nv, (u, v) => {
+          let x = C(2 * Math.PI * u),
+            y = S(2 * Math.PI * u),
+            z = 2 * v - 1;
+          return [x, y, z, x, y, 0];
+        });
 
-   M.identity().perspective(3);
-   M.save();
-   M.translate(foodPosition.x, foodPosition.y, 0);
-   M.scale(0.05, 0.05, 0.05);
-   render(Sphere, [1, 0, 0]);
-   M.restore();
+      let disk = (nu, nv) =>
+        createMesh(nu, nv, (u, v) => {
+          let x = v * C(2 * Math.PI * u),
+            y = v * S(2 * Math.PI * u);
+          return [x, y, 0, 0, 0, 1];
+        });
 
-   // Render the centipede segments based on their updated positions
-   renderCentipede();
+      let cylinder = (nu, nv) =>
+        createMesh(nu, nv, (u, v) => {
+          let x = C(2 * Math.PI * u),
+            y = S(2 * Math.PI * u);
+          switch ((5 * v) >> 0) {
+            case 0:
+              return [0, 0, -1, 0, 0, -1];
+            case 1:
+              return [x, y, -1, 0, 0, -1];
+            case 2:
+              return [x, y, -1, x, y, 0];
+            case 3:
+              return [x, y, 1, x, y, 0];
+            case 4:
+              return [x, y, 1, 0, 0, 1];
+            case 5:
+              return [0, 0, 1, 0, 0, 1];
+          }
+        });
 
-   function renderCentipede() {
-      for (let i = 0; i < numSegments; i++) {
-         let segment = segmentPositions[i];
-         let phaseOffset = i * Math.PI / 8;
-         let segmentSway = sway * Math.cos(t + phaseOffset); // Use fast t for swaying effect
+      let torus = (nu, nv) =>
+        createMesh(nu, nv, (u, v) => {
+          let ct = C(2 * Math.PI * u);
+          let st = S(2 * Math.PI * u);
+          let cp = C(2 * Math.PI * v);
+          let sp = S(2 * Math.PI * v);
+          let x = (1 + 0.5 * cp) * ct,
+            y = (1 + 0.5 * cp) * st,
+            z = 0.5 * sp;
+          return [x, y, z, cp * ct, cp * st, sp];
+        });
 
-         // Set each segment's position
-         M.identity().perspective(3).translate(segment.x, segment.y, 0);
+      // SHORTCUT TO MAKE IT EASIER TO DEFINE CUBE AND OCTAHEDRON
 
-         // Head rendering with eyes and sway
-         if (i === 0) {
+      let strToTris = (str) => {
+        let tris = [];
+        for (let n = 0; n < str.length; n++)
+          switch (str.charAt(n)) {
+            case "N":
+              tris.push(-1);
+              break;
+            case "n":
+              tris.push(-0.577);
+              break;
+            case "0":
+              tris.push(0);
+              break;
+            case "p":
+              tris.push(0.577);
+              break;
+            case "P":
+              tris.push(1);
+              break;
+          }
+        return tris;
+      };
+
+      // DEFINE SOME MESHES MADE FROM TRIANGLES
+
+      let cube = strToTris(`PNP00P PPP00P NPP00P  NPP00P NNP00P PNP00P
+                                  NPN00N PPN00N PNN00N  PNN00N NNN00N NPN00N
+                                  PPNP00 PPPP00 PNPP00  PNPP00 PNNP00 PPNP00
+                                  NNPN00 NPPN00 NPNN00  NPNN00 NNNN00 NNPN00
+                                  NPP0P0 PPP0P0 PPN0P0  PPN0P0 NPN0P0 NPP0P0
+                                  PNN0N0 PNP0N0 NNP0N0  NNP0N0 NNN0N0 PNN0N0`);
+
+      let octahedron = strToTris(`00Nnnn 0N0nnn N00nnn  P00pnn 0N0pnn 00Npnn
+                                        N00npn 0P0npn 00Nnpn  00Nppn 0P0ppn P00ppn
+                                        00Pnnp 0N0nnp N00nnp  00Ppnp 0N0pnp P00pnp
+                                        N00npp 0P0npp 00Pnpp  P00ppp 0P0ppp 00Pppp`);
+
+      // DEFINE ALL THE OBJECT SHAPES
+
+      let CustomShape = { type: 1, mesh: new Float32Array(customGeometry(20, 10)) };
+      let Cube = { type: 0, mesh: new Float32Array(cube) };
+      let Cylinder = { type: 1, mesh: new Float32Array(cylinder(20, 6)) };
+      let Disk = { type: 1, mesh: new Float32Array(disk(20, 1)) };
+      let Octahedron = { type: 0, mesh: new Float32Array(octahedron) };
+      let Sphere = { type: 1, mesh: new Float32Array(sphere(20, 10)) };
+      let Torus = { type: 1, mesh: new Float32Array(torus(30, 30)) };
+      let Tube = { type: 1, mesh: new Float32Array(tube(20, 1)) };
+
+      // VERY SIMPLE VERTEX AND FRAGMENT SHADERS
+
+      let vertexSize = 6;
+      let vertexShader = `
+               attribute vec3 aPos, aNor;
+               uniform mat4 uMatrix, uInvMatrix;
+               uniform vec2 uResolution;
+               varying vec3 vPos, vNor;
+               void main() {
+                  vec4 pos = uMatrix * vec4(aPos, 1.0);
+                  vec4 nor = vec4(aNor, 0.0) * uInvMatrix;
+                  vPos = pos.xyz;
+                  vNor = nor.xyz;
+                  // adapts to the shorter side
+                  pos.xy *= uResolution.yx / max(uResolution.x, uResolution.y);
+                  gl_Position = pos * vec4(1.,1.,-1.,1.);
+               }
+            `;
+
+      let fragmentShader = `
+               precision mediump float;
+               uniform vec3 uColor;
+               uniform float uOpacity;
+               varying vec3 vPos, vNor;
+               void main(void) {
+
+                  float c = .05 + max(0., dot(normalize(vNor), vec3(.57)));
+                  gl_FragColor = vec4(sqrt(c * uColor), uOpacity);
+               }
+            `;
+
+      // INITIALIZE GL AND GET UNIFORM NAMES
+
+      let gl = start_gl(canvas1, vertexSize, vertexShader, fragmentShader);
+
+      let uOpacity = gl.getUniformLocation(gl.program, "uOpacity");
+      let uColor = gl.getUniformLocation(gl.program, "uColor");
+      let uResolution = gl.getUniformLocation(gl.program, "uResolution");
+      let uInvMatrix = gl.getUniformLocation(gl.program, "uInvMatrix");
+      let uMatrix = gl.getUniformLocation(gl.program, "uMatrix");
+
+      // INSTANTIATE THE MATRIX OBJECT
+
+      let M = new Matrix();
+
+      // RENDER ONE SHAPE, AND GIVE IT A COLOR
+
+      let render = (Shape, color, opacity) => {
+        // SET THE VALUES OF VARIOUS UNIFORM VARIABLES
+
+        gl.uniform1f(uOpacity, opacity === undefined ? 1 : opacity);
+        gl.uniform3fv(uColor, color);
+        gl.uniformMatrix4fv(uInvMatrix, false, mInverse(M.get()));
+        gl.uniformMatrix4fv(uMatrix, false, M.get());
+
+        // RENDER THIS OBJECT
+
+        let mesh = Shape.mesh;
+        gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
+        gl.drawArrays(Shape.type ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, mesh.length / vertexSize);
+      };
+
+      const videoWidth = 1280;
+      const videoHeight = 720;
+
+      const defaultHands = [
+        {
+          keypoints3D: [
+            {
+              x: -0.03787783160805702,
+              y: 0.07790903002023697,
+              z: 0.045928955078125,
+              name: "wrist",
+            },
+            {
+              x: -0.0006799586117267609,
+              y: 0.06986017525196075,
+              z: 0.02447509765625,
+              name: "thumb_cmc",
+            },
+            {
+              x: 0.02930510975420475,
+              y: 0.06730339676141739,
+              z: 0.00826263427734375,
+              name: "thumb_mcp",
+            },
+            {
+              x: 0.05775517597794533,
+              y: 0.06205564737319946,
+              z: -0.00897979736328125,
+              name: "thumb_ip",
+            },
+            {
+              x: 0.07781694829463959,
+              y: 0.058249980211257935,
+              z: -0.0157928466796875,
+              name: "thumb_tip",
+            },
+            {
+              x: 0.025669753551483154,
+              y: 0.004284405615180731,
+              z: 0.00200653076171875,
+              name: "index_finger_mcp",
+            },
+            {
+              x: 0.040387462824583054,
+              y: -0.019960597157478333,
+              z: -0.01004791259765625,
+              name: "index_finger_pip",
+            },
+            {
+              x: 0.04946909099817276,
+              y: -0.03502365201711655,
+              z: -0.0194854736328125,
+              name: "index_finger_dip",
+            },
+            {
+              x: 0.05412478744983673,
+              y: -0.047075096517801285,
+              z: -0.04656982421875,
+              name: "index_finger_tip",
+            },
+            {
+              x: 0.0038058205973356962,
+              y: -0.005083218216896057,
+              z: 0.003490447998046875,
+              name: "middle_finger_mcp",
+            },
+            {
+              x: 0.016927238553762436,
+              y: -0.04128977656364441,
+              z: -0.01050567626953125,
+              name: "middle_finger_pip",
+            },
+            {
+              x: 0.019765779376029968,
+              y: -0.05910944566130638,
+              z: -0.0296783447265625,
+              name: "middle_finger_dip",
+            },
+            {
+              x: 0.025638222694396973,
+              y: -0.07863118499517441,
+              z: -0.05181884765625,
+              name: "middle_finger_tip",
+            },
+            {
+              x: -0.01784539967775345,
+              y: -0.006131529808044434,
+              z: -0.0011529922485351562,
+              name: "ring_finger_mcp",
+            },
+            {
+              x: -0.015706302598118782,
+              y: -0.0373476967215538,
+              z: -0.01506805419921875,
+              name: "ring_finger_pip",
+            },
+            {
+              x: -0.013495760038495064,
+              y: -0.05713582783937454,
+              z: -0.031768798828125,
+              name: "ring_finger_dip",
+            },
+            {
+              x: -0.008397594094276428,
+              y: -0.07503113150596619,
+              z: -0.052459716796875,
+              name: "ring_finger_tip",
+            },
+            {
+              x: -0.0398726686835289,
+              y: 0.005785009823739529,
+              z: -0.0020313262939453125,
+              name: "pinky_finger_mcp",
+            },
+            {
+              x: -0.04406750947237015,
+              y: -0.017730463296175003,
+              z: -0.007190704345703125,
+              name: "pinky_finger_pip",
+            },
+            {
+              x: -0.04889915883541107,
+              y: -0.03773116692900658,
+              z: -0.0169219970703125,
+              name: "pinky_finger_dip",
+            },
+            {
+              x: -0.05031410604715347,
+              y: -0.05503172054886818,
+              z: -0.032684326171875,
+              name: "pinky_finger_tip",
+            },
+          ],
+          handedness: "Left",
+          confidence: 0.97998046875,
+          label: "default",
+          wrist: {
+            x: -canvas1.width,
+            y: canvas1.height * 2,
+            x3D: -0.03787783160805702,
+            y3D: 0.07790903002023697,
+            z3D: 0.045928955078125,
+          },
+        },
+        {
+          keypoints3D: [
+            {
+              x: 0.03077506460249424,
+              y: 0.0787341445684433,
+              z: 0.03558349609375,
+              name: "wrist",
+            },
+            {
+              x: -0.0034471023827791214,
+              y: 0.06808800250291824,
+              z: 0.01552581787109375,
+              name: "thumb_cmc",
+            },
+            {
+              x: -0.0275352094322443,
+              y: 0.0673433393239975,
+              z: 0.00400543212890625,
+              name: "thumb_mcp",
+            },
+            {
+              x: -0.05462886393070221,
+              y: 0.06337296962738037,
+              z: -0.01229095458984375,
+              name: "thumb_ip",
+            },
+            {
+              x: -0.07707756012678146,
+              y: 0.05957866460084915,
+              z: -0.0193634033203125,
+              name: "thumb_tip",
+            },
+            {
+              x: -0.028100844472646713,
+              y: 0.010674698278307915,
+              z: 0.0008516311645507812,
+              name: "index_finger_mcp",
+            },
+            {
+              x: -0.04161762446165085,
+              y: -0.01921367272734642,
+              z: -0.0079345703125,
+              name: "index_finger_pip",
+            },
+            {
+              x: -0.053029607981443405,
+              y: -0.03869390860199928,
+              z: -0.019134521484375,
+              name: "index_finger_dip",
+            },
+            {
+              x: -0.05916087329387665,
+              y: -0.04715891554951668,
+              z: -0.04901123046875,
+              name: "index_finger_tip",
+            },
+            {
+              x: -0.006577180698513985,
+              y: -0.0034057102166116238,
+              z: 0.0045623779296875,
+              name: "middle_finger_mcp",
+            },
+            {
+              x: -0.014785446226596832,
+              y: -0.03959852457046509,
+              z: -0.007785797119140625,
+              name: "middle_finger_pip",
+            },
+            {
+              x: -0.022368265315890312,
+              y: -0.05796787142753601,
+              z: -0.02984619140625,
+              name: "middle_finger_dip",
+            },
+            {
+              x: -0.02951589971780777,
+              y: -0.07634104043245316,
+              z: -0.052001953125,
+              name: "middle_finger_tip",
+            },
+            {
+              x: 0.019404077902436256,
+              y: -0.008080526255071163,
+              z: 0.00021207332611083984,
+              name: "ring_finger_mcp",
+            },
+            {
+              x: 0.012943966314196587,
+              y: -0.03479362279176712,
+              z: -0.011444091796875,
+              name: "ring_finger_pip",
+            },
+            {
+              x: 0.009323356673121452,
+              y: -0.054588038474321365,
+              z: -0.0297088623046875,
+              name: "ring_finger_dip",
+            },
+            {
+              x: 0.002226961776614189,
+              y: -0.06964603066444397,
+              z: -0.050018310546875,
+              name: "ring_finger_tip",
+            },
+            {
+              x: 0.03703770786523819,
+              y: 0.0037277601659297943,
+              z: -0.0020751953125,
+              name: "pinky_finger_mcp",
+            },
+            {
+              x: 0.040491532534360886,
+              y: -0.01926642283797264,
+              z: -0.00423431396484375,
+              name: "pinky_finger_pip",
+            },
+            {
+              x: 0.04097524657845497,
+              y: -0.0364639088511467,
+              z: -0.0166015625,
+              name: "pinky_finger_dip",
+            },
+            {
+              x: 0.036471910774707794,
+              y: -0.05132535845041275,
+              z: -0.033233642578125,
+              name: "pinky_finger_tip",
+            },
+          ],
+          handedness: "Right",
+          confidence: 0.94091796875,
+          label: "default",
+          wrist: {
+            x: canvas1.width,
+            y: canvas1.height * 2,
+            x3D: 0.03077506460249424,
+            y3D: 0.0787341445684433,
+            z3D: 0.03558349609375,
+          },
+        },
+      ];
+
+      const renderHands = (hands = [], color = [0.8, 0.8, 0.8], opacity = 1) => {
+        //console.log(hands, hands[0].confidence, hands[1].confidence);
+        for (const hand of hands) {
+          const wristKeypoint = hand.keypoints3D[0];
+          const keypointScale = 64;
+          const sphereDiameter = 0.08;
+          const translationScale = 8; // transitionScale does not seem to evenly scale Y
+          //console.log(hand.wrist.x, hand.wrist.y);
+          const offsetX = hand.wrist.x / videoWidth - 0.5;
+          const offsetY = 0.5 - hand.wrist.y / videoHeight;
+          const adjustedOffsetX = ((offsetX * videoWidth) / videoHeight) * translationScale;
+          const adjustedOffsetY = offsetY * translationScale + 1;
+          //console.log(hand.wrist.y);
+          hand.offset = { x: adjustedOffsetY, y: adjustedOffsetY };
+          for (const keypoint of hand.keypoints3D) {
+            const x = (keypoint.x - wristKeypoint.x) * keypointScale;
+            const y = (-keypoint.y + wristKeypoint.y) * keypointScale;
+            const z = (keypoint.z - wristKeypoint.z) * keypointScale;
+            keypoint.coord = { x: x * sphereDiameter + adjustedOffsetX, y: y * sphereDiameter + adjustedOffsetY };
             M.save();
-            M.rotateY(segmentSway);
-            M.save();
-               M.scale(0.1, 0.1, 0.1);
-               render(Sphere, headColor); // Render head
-
-               // Left Eye
-               M.save();
-               M.translate(-0.03, 0.06, 0.05);
-               M.scale(0.02, 0.02, 0.02);
-               render(Sphere, [0, 0, 0]); // Black left eye
-               M.restore();
-
-               // Right Eye
-               M.save();
-               M.translate(0.03, 0.06, 0.05);
-               M.scale(0.02, 0.02, 0.02);
-               render(Sphere, [0, 0, 0]); // Black right eye
-               M.restore();
-
+            M.translate(adjustedOffsetX, adjustedOffsetY, 0);
+            M.scale(sphereDiameter, sphereDiameter, sphereDiameter);
+            M.translate(x, y, z);
+            //M.translate(0, 0, 0);
+            render(Sphere, color, opacity);
             M.restore();
-            M.restore();
-         } else {
-            // Body segment rendering with sway
-            M.save();
-            M.rotateY(segmentSway);
-            M.save();
-               M.scale(bodyWidth, 0.1, 0.1);
-               render(Sphere, bodyColor);
-            M.restore();
+          }
+        }
+        return hands;
+      };
 
-            // Legs on each side of the body segment
-            for (let side = -1; side <= 1; side += 2) {
-               let legPhase = t * legFrequency + phaseOffset * side;
-               let knee = 0.5 + 0.5 * Math.sin(legPhase);
+      const renderPerson = (skinColor = [0.8, 0.8, 0.8], offsetAdjustedTime = 0, walkingPace = 1) => {
+        const headWidth = 0.065;
+        const headHeight = 0.07;
+        const neckWidth = 0.03;
+        const neckHeight = 0.02;
+        const shoulderWidth = 0.11;
+        const shoulderHeight = 0.05;
+        const shoulderSwayAmount = 0.25;
+        const shoulderSwayPace = walkingPace;
+        const shoulderSway = shoulderSwayAmount * C(offsetAdjustedTime * shoulderSwayPace);
+        const spineHeight = 0.12;
+        const spineSegmentsNum = 3;
+        const spineSegmentWidth = 0.06;
+        const spineSegmentHeight = spineHeight / spineSegmentsNum;
+        const limbLength = 0.2;
+        const limbThickness = 0.04;
+        const footLength = 0.05;
+        const footWidth = 0.04;
+        const footHeight = 0.025;
+        const hipWidth = 0.06;
+        const hipHeight = 0.04;
+        const hipSwayAmount = 0.1;
+        const hipSwayPace = walkingPace;
+        const hipSway = hipSwayAmount * C(offsetAdjustedTime * hipSwayPace);
+        const phaseDiff = 2;
+        const armLegPhaseDiff = 1;
 
-               M.save();
-               M.translate(0, 0, side * bodyWidth);
-               M.rotateX(0.2 * Math.sin(t + phaseOffset));
-               M.rotateZ(knee);
+        // ANIMATE AND RENDER THE SCENE
 
-               // Upper leg
-               M.save();
-                  M.translate(0, -0.2 / 2, 0);
-                  M.scale(0.05, 0.2 / 2, 0.05);
-                  render(Sphere, bodyColor);
-               M.restore();
+        M.rotateZ(hipSway);
+        M.save();
+        M.scale(hipWidth, hipHeight, hipHeight);
+        render(Sphere, skinColor); // PELVIS
+        M.restore();
+        M.save();
+        M.translate(0, hipHeight, 0);
+        for (let i = 0; i < spineSegmentsNum; i++) {
+          if (i !== 0) M.translate(0, spineSegmentHeight, 0);
+          M.translate(0, spineSegmentHeight, 0);
+          M.save();
+          M.scale(spineSegmentWidth, spineSegmentHeight, spineSegmentHeight);
+          render(Sphere, skinColor); // spine
+          M.restore();
+        }
+        M.translate(0, spineSegmentHeight, 0);
+        M.translate(0, shoulderHeight, 0);
+        M.rotateY(shoulderSway);
+        M.save();
+        M.scale(shoulderWidth, shoulderHeight, shoulderHeight);
+        render(Sphere, skinColor); // shoulder
+        M.restore();
+        for (let side = -1; side <= 1; side += 2) {
+          const elbow = 0.5 + 0.5 * S(offsetAdjustedTime * walkingPace + side * Math.PI * (phaseDiff + armLegPhaseDiff));
+          M.save();
+          M.translate(side * shoulderWidth, 0, 0);
+          M.rotateZ(side * elbow);
+          M.rotateY(shoulderSway);
+          M.save();
+          M.translate(0, -limbLength / 2, 0);
+          M.scale(limbThickness, limbLength / 2, limbThickness);
+          render(Sphere, skinColor); // upper arm
+          M.restore();
+          M.translate(0, -limbLength, 0);
+          M.save();
+          M.rotateZ(side * elbow);
+          M.save();
+          M.translate(0, -limbLength / 2, 0);
+          M.scale(limbThickness, limbLength / 2, limbThickness);
+          render(Sphere, skinColor); // lower arm
+          M.restore();
+          M.restore();
+          M.restore();
+        }
+        M.save();
+        M.translate(0, shoulderHeight, 0);
+        M.translate(0, neckHeight, 0);
+        M.save();
+        M.scale(neckWidth, neckHeight, neckHeight);
+        render(Sphere, skinColor);
+        M.restore();
+        M.translate(0, neckHeight, 0);
+        M.translate(0, headHeight, 0);
+        M.scale(headWidth, headHeight, headWidth);
+        render(Sphere, skinColor); // head
+        M.restore();
+        M.restore();
+        for (let side = -1; side <= 1; side += 2) {
+          const knee = 0.5 + 0.5 * S(offsetAdjustedTime * walkingPace + ((side * Math.PI) / 2) * phaseDiff);
+          M.save();
+          M.translate(side * hipWidth, 0, 0);
+          M.rotateX(-knee);
+          M.rotateZ(hipSway);
+          M.save();
+          M.translate(0, -limbLength / 2, 0);
+          M.scale(limbThickness, limbLength / 2, limbThickness);
+          render(Sphere, skinColor); // UPPER LEG
+          M.restore();
+          M.translate(0, -limbLength, 0);
+          M.save();
+          M.rotateX(2 * knee);
+          M.save();
+          M.translate(0, -limbLength / 2, 0);
+          M.scale(limbThickness, limbLength / 2, limbThickness);
+          render(Sphere, skinColor); // LOWER LEG
+          M.restore();
+          M.translate(0, -limbLength, 0);
+          M.save();
+          M.translate(0, 0, footLength);
+          M.scale(footWidth, footHeight, footLength);
+          render(Sphere, skinColor); // FOOT
+          M.restore();
+          M.restore();
+          M.restore();
+        }
+      };
 
-               // Lower leg
-               M.translate(0, -0.2, 0);
-               M.rotateZ(-2 * knee);
-               M.save();
-                  M.translate(0, -0.2 / 2, 0);
-                  M.scale(0.05, 0.2 / 2, 0.05);
-                  render(Sphere, bodyColor);
-               M.restore();
+      // THE ANIMATION LOOP
 
-               // Foot
-               M.translate(0, -0.2, 0);
-               M.save();
-                  M.translate(0.2 / 4, 0, 0);
-                  M.scale(0.2 / 4, 0.05, 0.05);
-                  render(Sphere, bodyColor);
-               M.restore();
+      let frameCount = 0;
+      let startTime = Date.now() / 1000;
+      let hands = JSON.parse(JSON.stringify(defaultHands));
+      const smoothness = 0.7;
+      const disappearSmoothness = 0.95;
+      const timeoutDuration = 10;
+      const timeouts = {
+        left: timeoutDuration,
+        right: timeoutDuration,
+        tick: function () {
+          this.left--;
+          this.right--;
+        },
+      };
 
-               M.restore();
+      const dist3D = (keypointA, keypointB) => {
+        const dx = keypointA.x - keypointB.x;
+        const dy = keypointA.y - keypointB.y;
+        const dz = keypointA.z - keypointB.z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+      };
+
+      const dist2D = (coordA, coordB) => {
+        const dx = coordA.x - coordB.x;
+        const dy = coordA.y - coordB.y;
+        return Math.sqrt(dx * dx + dy * dy);
+      };
+
+      const center2D = (coordA, coordB) => {
+        const dx = coordB.x - coordA.x;
+        const dy = coordB.y - coordA.y;
+        const x = coordA.x + dx / 2;
+        const y = coordA.y + dx / 2;
+        return { x, y };
+      };
+
+      let pCenterX = undefined;
+      const sliders = document.querySelectorAll("input");
+      let activeSlider;
+      const upperThreshold = 0.1;
+      const lowerThreshold = 0.08;
+      let pinchThreshold = lowerThreshold;
+
+      let rotateX = 0;
+      let rotateY = 0;
+      function renderFrame() {
+        frameCount++;
+        timeouts.tick();
+
+        if (timeouts.left < 0) gotHands([defaultHands[0]]);
+        if (timeouts.right < 0) gotHands([defaultHands[1]]);
+
+        const requestId = requestAnimationFrame(renderFrame);
+
+        let time = Date.now() / 1000 - startTime;
+        let m;
+
+        M.identity().perspective(30);
+
+        const handsColor = activeSlider === undefined ? [0.8, 0.8, 0.8] : [0.5, 0.8, 0.5];
+
+        renderHands(hands, handsColor, 0.3);
+        //console.log(hands);
+        for (const hand of hands) {
+          if (hand.handedness === "Right") {
+            const indexKeypoint3D = hand.keypoints3D[8];
+            const thumbKeypoint3D = hand.keypoints3D[4];
+            const indexThumbDist = dist3D(indexKeypoint3D, thumbKeypoint3D);
+            //console.log(dist3D(hand.keypoints3D[0], hand.keypoints3D[17]));
+            /*
+                  if (hand.handedness === "Right") {
+                    //console.log(indexKeypoint3D.coord.x);
+                  }
+                  */
+            // screen bounds
+            const minScreenY = -1;
+            const maxScreenY = 1;
+            const minScreenX = -canvas1.width / canvas1.height;
+            const maxScreenX = canvas1.width / canvas1.height;
+
+            const center = center2D(indexKeypoint3D.coord, thumbKeypoint3D.coord);
+            //console.log(indexThumbDist);
+            //console.log(center);
+            if (indexThumbDist < pinchThreshold && center.x > minScreenX && center.x < maxScreenX && center.y > minScreenY && center.y < maxScreenY) {
+              pinchThreshold = upperThreshold;
+              if (center.y > 0) {
+                if (activeSlider === undefined) activeSlider = sliders[0];
+              } else if (center.y < 0) {
+                if (activeSlider === undefined) activeSlider = sliders[1];
+              }
+              activeSlider?.focus();
+              //console.log(indexThumbDist);
+              //console.log(pCenterX, center.x);
+              if (pCenterX !== undefined) {
+                let diff = center.x - pCenterX;
+                // console.log(diff);
+                if (Math.abs(diff) < 0.01) {
+                  diff = 0;
+                } else {
+                  diff = diff * 100;
+                }
+                if (activeSlider !== undefined) activeSlider.value = parseInt(activeSlider?.value) + diff;
+
+                //console.log(diff);
+                //console.log(activeSlider);
+                //console.log(activeSlider.value);
+              }
+              pCenterX = center.x;
+            } else {
+              pinchThreshold = lowerThreshold;
+              activeSlider?.blur();
+              activeSlider = undefined;
+              pCenterX = undefined;
             }
+          }
+        }
+
+        // DEFINE PARAMETERS THAT CONTROL THE SCENE AND THE ANIMATION
+
+        const adjustedTime = time / 5;
+
+        const walkingPace = 6;
+
+        const skeletonColsNumMax = 24;
+        const skeletonRowsNum = 18;
+        const colSpacing = 0.54;
+        const rowSpacing = 1.23;
+        const cagedPersonSize = 1.1;
+        const personSize = 0.2;
+        const bodyRotationYMax = Math.PI * 2;
+        const skinColor = [0.8, 0.8, 0.8];
+
+        const offsetXRatio = (sliders[0].value - 50) / 100;
+        const offsetYRatio = (sliders[1].value - 50) / 100;
+
+        const rotateXSpeed = Math.abs(offsetXRatio) < 0.1 ? 0 : offsetXRatio * 0.1;
+        const rotateYSpeed = Math.abs(offsetYRatio) < 0.1 ? 0 : offsetYRatio * 0.1;
+
+        rotateX += rotateXSpeed;
+        rotateY += rotateYSpeed;
+        M.rotateX(rotateX);
+        M.rotateY(rotateY);
+        M.rotateZ(Math.PI / 2);
+
+        M.save();
+        M.rotateZ(-Math.PI / 2);
+        M.translate(0, -0.1, 0);
+        M.scale(cagedPersonSize, cagedPersonSize, cagedPersonSize);
+        renderPerson(skinColor, adjustedTime + Math.PI / 4, walkingPace);
+        M.restore();
+        for (let r = 0; r < skeletonRowsNum; r++) {
+          const v = r / (skeletonRowsNum - 1);
+          const skeletonColsNum = Math.floor(skeletonColsNumMax * S(v * Math.PI) + 1);
+          for (let c = 0; c < skeletonColsNum; c++) {
+            const u = c / skeletonColsNum;
+            const skinColor = [0.5 + 0.4 * S(v * Math.PI + 1.5), 0.5 + 0.4 * S(v * Math.PI + 1.0), 0.5 + 0.4 * S(v * Math.PI + 0.5)];
+            // const skinColor = skeletonColsNum === 1 ? [0.8, 0, 0] : [0.8, 0.8, 0.8];
+            const timeOffset = u * Math.PI * 2 + v * Math.PI * 2;
+            const offsetAdjustedTime = adjustedTime + timeOffset;
+            const xOffset = 0.0;
+            const yOffset = 0.7 + 0.1 * S(v * Math.PI * 2 + adjustedTime * 6);
+            const zOffset = 0.0;
+            const xRotation = u * Math.PI * 2;
+            const yRotation = 0;
+            const zRotation = (v - 0.5) * Math.PI;
+            const xRotationLocal = 0;
+            const yRotationLocal = Math.PI / 2;
+            const zRotationLocal = 0;
+
+            M.save();
+            M.rotateX(xRotation);
+            M.rotateY(yRotation);
+            M.rotateZ(zRotation);
+            M.translate(xOffset, yOffset, zOffset);
+            M.rotateX(xRotationLocal);
+            M.rotateY(yRotationLocal);
+            M.rotateZ(zRotationLocal);
+            M.scale(personSize, personSize, personSize);
+
+            renderPerson(skinColor, offsetAdjustedTime, walkingPace);
+
             M.restore();
-         }
+          }
+        }
       }
-   }
-}
-   requestAnimationFrame(renderFrame);
-   
-   </script>
-   
-   
-   
+      gl.uniform2fv(uResolution, [canvas1.width, canvas1.height]);
+
+      requestAnimationFrame(renderFrame);
+    </script>
+  </body>
+  <script>
+    const gotHands = (results) => {
+      //console.log(results);
+      for (const result of results) {
+        for (const hand of hands) {
+          if (result.handedness === hand.handedness && result.confidence > 0.9) {
+            let localSmoothness = smoothness;
+            if (result.label !== "default") {
+              timeouts[result.handedness.toLowerCase()] = timeoutDuration;
+            } else {
+              localSmoothness = disappearSmoothness;
+            }
+            hand.confidence = lerp(hand.confidence, result.confidence, localSmoothness);
+            for (const axis of ["x", "y"]) {
+              hand.wrist[axis] = lerp(hand.wrist[axis], result.wrist[axis], localSmoothness);
+            }
+            for (let i = 0; i < hand.keypoints3D.length; i++) {
+              for (const axis of ["x", "y", "z"]) {
+                hand.keypoints3D[i][axis] = lerp(hand.keypoints3D[i][axis], result.keypoints3D[i][axis], smoothness);
+              }
+            }
+          }
+        }
+      }
+    };
+    const handPoseOptions = {
+      maxHands: 2,
+      flipped: true,
+      runtime: "mediapipe",
+      modelType: "full",
+    };
+    const lerp = (start, end, amount) => {
+      return start * amount + end * (1 - amount);
+    };
+    document.addEventListener("DOMContentLoaded", () => {
+      const video = document.getElementById("video");
+      video.muted = true;
+      const videoDevices = [];
+      const constraints = { audio: false, video: { width: videoWidth, height: videoHeight } };
+      const mediaDevices = navigator.mediaDevices;
+      let deviceIndex;
+      const cameraButton = document.getElementById("cameraButton");
+      const handPose = ml5.handPose(handPoseOptions, (handPose, error) => {
+        if (error) {
+          console.error(error);
+        } else {
+          cameraButton.addEventListener("click", () => {
+            if (deviceIndex !== undefined) {
+              deviceIndex = deviceIndex + 1 >= videoDevices.length ? 0 : deviceIndex + 1;
+              constraints.video.deviceId = { exact: videoDevices[deviceIndex].deviceId };
+            }
+            mediaDevices
+              .getUserMedia(constraints)
+              .then((stream) => {
+                handPose.detectStop();
+                video.srcObject = stream;
+                video.addEventListener("loadedmetadata", () => {
+                  video.play();
+                  handPose.detectStart(video, gotHands);
+                });
+                if (deviceIndex === undefined) {
+                  mediaDevices.enumerateDevices().then((devices) => {
+                    devices.forEach(function (device) {
+                      //console.log(device);
+                      if (device.kind === "videoinput") {
+                        videoDevices.push(device);
+                      }
+                    });
+                    if (videoDevices.length > 0) {
+                      deviceIndex = 0;
+                      cameraButton.innerHTML = "Raise right hand and pinch a slider or click here to switch camera";
+                      //cameraButton.style = "display: none";
+                      //console.log(`videoDevices count: ${videoDevices.length}`);
+                      //console.log(`active video device: ${videoDevices[deviceIndex]}`);
+                    }
+                  });
+                }
+              })
+              .catch(alert);
+          });
+        }
+      });
+    });
+  </script>
+</html>

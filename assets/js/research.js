@@ -41,11 +41,11 @@ const research = [
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw2.html",  // Add link to demo
   },
   {
-    title: "Notes from Class",
+    title: "Some Math Notes",
     authors:
       "Dev Pant, Ken Perlin",
     conferences:
-      "Lemme teach you some Ray Tracing Math",
+      "Lemme teach you Ray Tracing Math",
     researchYr: 2024,
     citebox: "popup2",
     image: "assets/images/hw3_ss.png",
@@ -98,11 +98,11 @@ const research = [
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw5.html",  // Add link to demo
   },
   {
-    title: "Stuff you can do just out of matrices",
+    title: "Hierarchical Models, Joint Rotation",
     authors:
       "Dev Pant, Ken Perlin",
     conferences:
-      "Animating a creature movement with matrix transformations",
+      "Stuff you can do just out of matrices",
     researchYr: 2024,
     citebox: "popup2",
     image: "assets/images/hw6_ss.png",
@@ -121,7 +121,7 @@ const research = [
     authors:
       "Dev Pant, Ken Perlin",
     conferences:
-      "Animating a creature movement with human input",
+      "Animating movements with human input",
     researchYr: 2024,
     citebox: "popup2",
     image: "assets/images/hw7_ss.png",
