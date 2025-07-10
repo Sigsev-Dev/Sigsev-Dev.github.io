@@ -136,6 +136,26 @@ const research = [
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw7.html",  // Add link to demo
   },
   {
+    title: "Texture Mapping",
+    authors:
+      "Dev Pant, Ken Perlin",
+    conferences:
+      "Trippy graphics Cube",
+    researchYr: 2024,
+    citebox: "popup2",
+    image: "assets/images/hw8_ss.png",
+    citation: {
+      vancouver:
+        "",
+    },
+    abstract:
+      "This is currently left empty and this can be considered as a dummy data 2",
+    absbox: "absPopup2",
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw8.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/hw8.html",  // Add link to demo
+  },
+  {
+    
     title: "Splines",
     authors:
       "Dev Pant, Ken Perlin",
@@ -153,6 +173,26 @@ const research = [
     absbox: "absPopup2",
     codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw9.html",  // Add link to code
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw9.html",  // Add link to demo
+  },
+  {
+    
+    title: "Procedural Material Rendering",
+    authors:
+      "Dev Pant, Ken Perlin",
+    conferences:
+      "Inverse Kinematics",
+    researchYr: 2024,
+    citebox: "popup2",
+    image: "assets/images/hw10_ss.png",
+    citation: {
+      vancouver:
+        "",
+    },
+    abstract:
+      "This is currently left empty and this can be considered as a dummy data 2",
+    absbox: "absPopup2",
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw10.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/hw10.html",  // Add link to demo
   },
 ];
 
