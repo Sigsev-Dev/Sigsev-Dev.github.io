@@ -194,6 +194,25 @@ const research = [
     codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw10.html",  // Add link to code
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw10.html",  // Add link to demo
   },
+  {
+    title: "Draw_Talk_Game",
+    authors:
+      "Dev Pant, Ken Perlin",
+    conferences:
+      "A lot of Computer Graphics and Math tricks, start of an idea for the Virtual Reality Project",
+    researchYr: 2024,
+    citebox: "popup2",
+    image: "assets/images/CG_project_SS.png",
+    citation: {
+      vancouver:
+        "",
+    },
+    abstract:
+      "This is currently left empty and this can be considered as a dummy data 2",
+    absbox: "absPopup2",
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/final_project.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/final_project.html",  // Add link to demo
+  },
 ];
 
 AOS.init();
