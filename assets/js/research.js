@@ -45,6 +45,25 @@ const research = [
     authors:
       "Dev Pant, Ken Perlin",
     conferences:
+      "Lemme teach you some Ray Tracing Math",
+    researchYr: 2024,
+    citebox: "popup2",
+    image: "assets/images/hw3_ss.png",
+    citation: {
+      vancouver:
+        "",
+    },
+    abstract:
+      "This is currently left empty and this can be considered as a dummy data 2",
+    absbox: "absPopup2",
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw3.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/hw3.html",  // Add link to demo
+  },
+  {
+    title: "Pretty Physics on reflection and refraction with light on Quadric Objects",
+    authors:
+      "Dev Pant, Ken Perlin",
+    conferences:
       "Quadric objects and matrix transformations with ray intersection",
     researchYr: 2024,
     citebox: "popup2",
@@ -59,6 +78,26 @@ const research = [
     codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw4.html",  // Add link to code
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw4.html",  // Add link to demo
   },
+  {
+    title: "Animating complex shapes made from triangles",
+    authors:
+      "Dev Pant, Ken Perlin",
+    conferences:
+      "Vertex Shader",
+    researchYr: 2024,
+    citebox: "popup2",
+    image: "assets/images/hw5_ss.png",
+    citation: {
+      vancouver:
+        "",
+    },
+    abstract:
+      "This is currently left empty and this can be considered as a dummy data 2",
+    absbox: "absPopup2",
+    codeLink: "https://github.com/Sigsev-Dev/Sigsev-Dev.github.io/blob/master/graphics/hw5.html",  // Add link to code
+    demoLink: "https://Sigsev-Dev.github.io/graphics/hw5.html",  // Add link to demo
+  },
+  
 ];
 
 AOS.init();

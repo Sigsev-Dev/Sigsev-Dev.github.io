@@ -1,16 +1,5 @@
 <pre>
 
-<big><font color=blue>
-<b>A note about this week's course notes and assignment:</b>
-
-   We went over a lot of topics in class this week. For next week (Oct 9),
-   I am only going to ask you to finish implementing the Matrix object
-   class at the bottom of these notes. Meanwhile, feel free to work on
-   reflection, refraction and other ray tracing topics that interest you.
-   Your work on those techniques can be used toward an assignment that
-   will be due two weeks from now, on October 16.</font></big>
-
-
 <big><big><b>NOTES ABOUT RAY TRACING</b></big></big>
 
 
@@ -200,7 +189,7 @@
             0, s, c, 0,
             0, 0, 0, 1
         ]);
-    };<font color=blue>// I implement this. Although for this and for all below, you could also use np.eye() 
+    };<font color=blue>// Play with this. Although for this and for all below, you could also use np.eye() 
         to create an identity matrix first and then replace values with c and s, which would sometimes help 
         with floating point error precision. Alternatively while multiplying we could have the values as floats not integers. </font>
       this.rotateY     = theta   => {
@@ -212,7 +201,7 @@
             -s, 0, c, 0,
             0, 0, 0, 1
         ]);
-    };<font color=blue>// I implement this.</font>
+    };<font color=blue>// Play with this.</font>
       this.rotateZ     = theta   => this.rotateZ = (theta) => {
         const c = Math.cos(theta);
         const s = Math.sin(theta);
@@ -222,7 +211,7 @@
             0, 0, 1, 0,
             0, 0, 0, 1
         ]);
-    };<font color=blue>// I implement this.</font>
+    };<font color=blue>// Play with this.</font>
       this.scale       = (x,y,z) => {
         value = multiply(value, [
             x, 0, 0, 0,
@@ -230,7 +219,7 @@
             0, 0, z, 0,
             0, 0, 0, 1
         ]);
-    };<font color=blue>// I implement this.</font>
+    };<font color=blue>// Play with this.</font>
       this.perspective = (x,y,z) => {
         value = multiply(value, [
             1, 0, 0, x,
@@ -238,7 +227,7 @@
             0, 0, 1, z,
             0, 0, 0, 1
         ]);
-    };<font color=blue>// I implement this.</font>
+    };<font color=blue>// Play with this.</font>
       this.get = () => value;
       this.set = v => value = v;
       this.transform = vector => {
@@ -249,7 +238,7 @@
             value[2] * x + value[6] * y + value[10] * z + value[14] * w,
             value[3] * x + value[7] * y + value[11] * z + value[15] * w
         ];
-    };<font color=blue>// I implement this.</font>
+    };<font color=blue>// Play with this.</font>
 
       let value = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
 
@@ -263,7 +252,7 @@
             }
         }
         return result;
-    };<font color=blue>// I implement this.</font>
+    };<font color=blue>// Play with this.</font>
 
    }
 
