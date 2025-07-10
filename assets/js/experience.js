@@ -6,18 +6,32 @@ AOS.init();
 const experiencecards = document.querySelector(".experience-cards");
 const exp = [
   {
+    title: "AI Intern",
+    cardImage: "assets/images/experience-page/numisma.png",
+    place: "Numisma Bank",
+    time: "(January, 2025 - May, 2025)",
+    desp: " Drove an agile frontend design and development for a customer portal website for over 20 frames, containerized in Azure functions. Led the backend development of Vision Language Models (VLMs) for retrieval, optimizing on-premises translation and OCR solutions with Vision Grid Transformer. Successfully reduced document processing costs by over 90%.",
+  },
+  {
+    title: "AI Team Lead",
+    cardImage: "assets/images/experience-page/lenr.png",
+    place: "Predictive Analytics Lab, NYU + Low Energy Nuclear Reactions, LENR",
+    time: "(September, 2023 - May, 2025)",
+    desp: " Spearheaded the development of a novel ensemble framework integrating 4 top LLM- LLaMA, GPT, Grok, and Gemini apis, improved with RAG and semantic search for high-accuracy similarity indexing and document retrieval. Built advanced data processing pipelines, performing extensive paragraph-level data cleaning and embedding generation using MongoDB and flask for scalable solutions on over 4000 LENR corpus research papers.",
+  },
+  {
     title: "Researcher",
     cardImage: "assets/images/experience-page/nyu.jpg",
     place: "Predictive Analytics Lab, NYU",
-    time: "(September, 2024 - Present)",
-    desp: " Led a team of 10 students in conducting Real-Time Big Data Analytics for the 2024 elections, analyzing sentiment from over 1 million YouTube live comments, Reddit and Twitter posts, and Google Trends using targeted searches. Utilized Vader Sentiment Analysis and NLTK to perform various NLP tasks before, during, and after the debates. Findings were published in multiple articles and gained media attention, being featured in outlets such as Washington Square News",
+    time: "(September, 2024 - October, 2024)",
+    desp: " Led a team of 10 students in conducting Real-Time Big Data Analytics for the 2024 elections, analyzing sentiment from over 1 million YouTube live comments, Reddit and Twitter posts, and Google Trends using targeted searches. Utilized Vader Sentiment Analysis and NLTK to perform various NLP tasks before, during, and after the debates. Findings were published in multiple articles and gained media attention, being featured in outlets such as Washington Square News, CNN, NPR",
   },
   {
     title: "Data Science Intern",
-    cardImage: "assets/images/experience-page/quest_mark.jpeg",
+    cardImage: "assets/images/experience-page/cuny.png",
     place: "NASA + CUNY",
-    time: "(May, 2024 - Present)",
-    desp: "Working under NASA RIA project on AI for Climate Change analyzing time series data of high resolution remote sensing imagery. Developed a self-learning ensemble model and a customized neural network architecture for pixel and object level analysis on Land Use Land Cover Satellite dataset achieving a 63% accuracy so far with prospect of further enhancements.",
+    time: "(May, 2024 - January 2025)",
+    desp: "Worked under a Geospatial project on AI for Climate Change analyzing time series data of high resolution remote sensing imagery. Developed a self-learning ensemble model and a customized neural network architecture for pixel and object level analysis on Land Use Land Cover Satellite dataset achieving a 63% accuracy so far with prospect of further enhancements.",
   },
   {
     title: "SDE Intern",
@@ -52,7 +66,7 @@ const exp = [
     cardImage: "assets/images/experience-page/IIITR.png",
     place: "IIIT Ranchi",
     time: "(May 2020 - May 2023)",
-    desp:"<li>Community Coordinator for Society of Blockchain-crypto-cyber_security @ House of Geeks , IIIT Ranchi</li><li> Member of community of Competitve Coding @ house of Geeks, IIIT Ranchi</li>",
+    desp:"<li>Community Coordinator for Society of Blockchain-crypto-cyber_security @ House of Geeks , IIIT Ranchi</li><li> Member of community of Competitve Coding @ house of Geeks, IIIT Ranchi</li><li> Cultural President, IIIT Ranchi</li><li> Captain of Chess Team, IIIT Ranchi</li>",
   },
 ];
 
@@ -122,20 +136,23 @@ const mentor = [
   {
     title: "TDefi Bizthon",
     subtitle: "Finalist",
-    image: "assets/images/experience-page/quest_mark.jpeg",
+    image: "assets/images/experience-page/tdefi.png",
     desp: " A B2B idea for a high-level third-party application that can initiate secure communication among various banks’ open APIs whilesolving the problem of on-demand identity management along with removing the issuerelated to security in open banking systems.",
+    link: "https://github.com/Sigsev-Dev/user_centric_host_hub_with_blockchain",  
   },
   {
     title: "Jack The Hack",
     subtitle: "Finalist",
     image: "assets/images/experience-page/ulhacks.png",
     desp: "Developed and lead a team on the project for supply chain asset tracker using Hyperledger Fabric with QR code integration.",
+    link: "https://github.com/Sigsev-Dev/AdaniWilmar-Asset-Tracker-using-Hyperledger-Fabric-with-QR-code-Integration",
   },
   {
     title: "Smart India Hackathon",
     subtitle: "Finalist",
     image: "assets/images/experience-page/SIH.png",
     desp: " Secure Online meetings for organisations for restricted access integrating MAC ad. and IP check passed through SHA256 with a multi language Neural Network NSFW chat moderation system for the chat app.",
+    link: "https://github.com/am-a-man/SIH-SOC-app-root",
   }
 
 ];
@@ -143,7 +160,7 @@ const mentor = [
 const showCards3 = () => {
   let output = "";
   mentor.forEach(
-    ({ title, image, subtitle, desp}) =>
+    ({ title, image, subtitle, desp, link}) =>
       (output += `  
       <div class="blog-slider__item swiper-slide">
         <div class="blog-slider__img">
@@ -153,7 +170,7 @@ const showCards3 = () => {
           <div class="blog-slider__title">${title}</div>
           <span class="blog-slider__code">${subtitle}</span>
           <div class="blog-slider__text">${desp}</div>
-          <a href="#" class="blog-slider__button">Read More</a>   
+          <a href="${link}" class="blog-slider__button">Read More</a>   
         </div>
       </div>
       `)
