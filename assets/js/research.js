@@ -41,7 +41,7 @@ const research = [
     demoLink: "https://Sigsev-Dev.github.io/graphics/hw2.html",  // Add link to demo
   },
   {
-    title: "Pretty Physics on reflection and refraction with light on Quadric Objects",
+    title: "Notes from Class",
     authors:
       "Dev Pant, Ken Perlin",
     conferences:
